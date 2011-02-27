@@ -1,10 +1,166 @@
 var util = require('util');
 
-(function() {
+Joose = (function() {
   var classParser = ['isa', 'classMethods', 'methods', 'has', 'does', 'before', 'after', 'around', 'override']
   var self = this;
   var Joose = {
+    A: {
+      each: function (array, func) {
+          for(var i = 0, len = array.length; i < len; i++) {
+              func(array[i], i)
+          }
+      },
+      map: function(array, func) {
+        var ret = [];
+        Joose.A.each(array, function(a) { ret.push(func(a)); });
+        return ret;
+      },
+      exists: function (array, v_or_c) {
+         var comperator = v_or_c;
+         if (typeof v_or_c != "function") {
+             comperator = function(o) { return o == v_or_c; }
+         }
+         for(var i = 0, len = array.length; i < len; ++i) {
+             if(comperator(array[i])) {
+                 return true;
+             }
+         }
+         return false;
+      },
+      reverse: function(array) {
+        var ret = [];
+        for(var i = array.length-1; i >= 0; --i) {
+          ret.push(array[i]);
+        }
+        return ret;
+      },
+      find: function( array, func ) {
+        var ret = null;
+        Joose.A.exists(array, function(a) {
+          if (func(a)) {
+            ret = a;
+            return true;
+          }
+          return false;
+         });
+         return ret;
+      },
+
+      deleteIf: function(array, func) {
+        var ret = [];
+        Joose.A.each(array, function(a) { if (!func(a)) { ret.push(a); } });
+        return ret;
+      },
+      Permutation: function(attributes, func) {
+        if (attributes.length > 2) {
+          Joose.A.each(attributes, function(current) {
+            var rest = [];
+            Joose.A.each(attributes, function(j) { if (j != current) { rest.push(j); } });	
+            Joose.A.Permutation(rest, function(result) {
+                result.unshift(current);
+                func(result);
+            });
+          });
+        }	
+        else if (attributes.length == 2) {
+          func([attributes[0], attributes[1]]);
+          func([attributes[1], attributes[0]]);
+        }
+        else if (attributes.length <= 1) {
+          func(attributes);
+        }
+      },
+      concat: function (source, array) {
+          source.push.apply(source, array)
+          return source
+      },
+      grep: function (array, func) {
+          var a = [];
+          Joose.A.each(array, function (t) {
+              if(func(t)) {
+                  a.push(t)
+              }
+          })
+          return a
+      },
+      remove: function (array, removeEle) {
+          var a = [];
+          Joose.A.each(array, function (t) {
+              if(t !== removeEle) {
+                  a.push(t)
+              }
+          })
+          return a
+      }
+    },
+    S: {
+      // Static helpers for Strings
+      uppercaseFirst: function (string) { 
+          return string.charAt(0).toUpperCase() + string.slice(1);
+      },
+      isString: function (thing) { 
+          if(typeof thing == "string") {
+              return true
+          }
+          return false
+      },
+      compare: function (a, b) {
+        if (a == b) {
+          return 0;
+        }
+        else if (a < b) {
+          return -1;
+        }
+        return 1;
+      }
+    },
+    O: {
+    // Static helpers for objects
+      each: function (object, func) {
+          for(var i in object) {
+              func(object[i], i)
+          }
+      },
+      merge: function(target, merger) {
+        var ret = {};
+        Joose.O.each(target, function(o,k) { ret[k] = o; });
+        Joose.O.each(merger, function(o,k) { ret[k] = o; });
+        return ret;
+      },	
+      map: function(array, func) {
+        var ret = {};
+        Joose.O.each(array, function(v,k) { var o = func({key: k, value: v}); ret[o.key] = o.value; });
+        return ret;
+      },
+      eachSafe: function (object, func) {
+          for(var i in object) {
+              if(object.hasOwnProperty(i)) {
+                  func(object[i], i)
+              }
+          }
+      },
+      extend: function (target, newObject) {
+          for(var i in newObject) {
+              var thing = newObject[i]
+              target[i] = thing
+          }
+      },
+      values: function (object) {
+        var ret = [];
+        Joose.O.each(object, function(o) { ret.push(o); })
+        return ret;
+      },
+      keys: function (object) {
+        var ret = [];
+        Joose.O.each(object, function(o, k) { ret.push(k); })
+        return ret;
+      }
+    },
     _: {
+      nameId: ~~(Math.random()*0xdeadbeaf),
+      getName: function () {
+        return 'Joose'+Joose._.nameId++;
+      },
       firstUp: function (string) { 
         return string.charAt(0).toUpperCase() + string.slice(1);
       },
@@ -16,6 +172,28 @@ var util = require('util');
       },
       Class: {
         isa: function(name, key, klass, def) {
+          var parts = def[key]
+          if (!parts) { return; }
+          if (!Joose._.isArray(parts)) { parts = [parts]; }
+          var first = true;
+          for(var i = parts.length - 1; i >= 0; --i) {
+            var parent = parts[i];
+            Joose._.Class.helper.methods(name, 'classMethods', klass, parent);
+//console.log('STATICS:'+klass.meta.name+"=>"+parent.meta.name)
+//console.log(Joose.O.keys(parent))
+//console.log(Joose.O.keys(klass))
+            if (first) {
+                var func = function() {}
+                func.prototype = parent.prototype;
+                klass.prototype = new func();
+            } else {
+              Joose._.Class.helper.methods(name, 'methods', klass.prototype, parent.prototype);
+            }
+//console.log('PROTOTYPE:'+klass.meta.name+"=>"+parent.meta.name)
+//console.log(Joose.O.keys(parent.prototype))
+//console.log(Joose.O.keys(klass.prototype))
+            first = false;
+          }
         },
         does: function(name, key, klass, def) {
           var parts = def[key]
@@ -35,11 +213,16 @@ var util = require('util');
         },
         helper: {
           methods: function(name, key, klass, def) {
-            var part = def[key];
+            var part = def;
             if (!part) { return }
+            //var meta = part.meta;
+            //delete part.meta;
             for(var i in part) {
-              klass[i] = part[i];
+              if (i != 'meta') {
+                klass[i] = part[i];
+              }
             }
+            //part.meta = meta;
           },
           around: function (func, orig) {
               return function aroundWrapper () {
@@ -73,11 +256,11 @@ var util = require('util');
           }
         },
         classMethods: function(name, key, klass, def) {
-          Joose._.Class.helper.methods(name, key, klass, def);
+          Joose._.Class.helper.methods(name, key, klass, def[key]);
         },
         methods: function(name, key, klass, def) {
           klass.prototype = klass.prototype || {};
-          Joose._.Class.helper.methods(name, key, klass.prototype, def);
+          Joose._.Class.helper.methods(name, key, klass.prototype, def[key]);
         },
         has: function(name, key, klass, def) {
           var part = def[key];
@@ -141,6 +324,10 @@ var util = require('util');
       }
     },
     Role: function(name, def) {
+      if (!def) {
+        def = name;
+        name = Joose._.getName();
+      }
       def.meta = {
                     name: name,
                     isClass: false,
@@ -148,17 +335,35 @@ var util = require('util');
                  }
       if (!def.requires) { def.requires = []; }
       if (!Joose._.isArray(def.requires)) { def.requires = [def.requires]; }
+
+      if (!def.does) { def.does = []; }
+      if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
+
+      for(var i in def.does) {
+        var klazz = def.does[i]
+
+        if (klazz.classMethods) { def.classMethods = def.classMethods || {}; }
+        Joose._.Class.helper.methods(name, 'classMethods', def.classMethods, klazz.classMethods);
+
+        if (klazz.methods) { def.methods = def.methods || {}; }
+        Joose._.Class.helper.methods(name, 'methods', def.methods, klazz.methods);
+      }
       Joose._.Module.current[name] = def;
       return def;
     },
     Class: function(name, def) {
+      if (!def) {
+        def = name;
+        name = Joose._.getName();
+      }
       //var klass_prototype = function() { };
       var klass = function() { };
       klass.meta = {
         name: name,
         isClass: true,
         isRole: false,
-        inits: { values: [], keys: [] }
+        inits: { values: [], keys: [] },
+        def: def
         //class: klass_prototype 
       }
       for(var i in classParser) {
@@ -438,5 +643,200 @@ Role('RoleTest1', {
 }))
 
 
+
+RoleClassDoes([Role('RoleTest0', {
+  requires: 'method0',
+  does: Role('RoleTest1', {
+          requires: 'method1',
+          classMethods: {
+            classRoleTest1: function() { return "classRoleTest1"; }
+          },
+          methods: {
+            instanceRoleTest1: function() { return "instanceRoleTest1"; }
+          }
+        }),
+  classMethods: {
+    classRoleTest0: function() { return "classRoleTest0"; }
+  },
+  methods: {
+    instanceRoleTest0: function() { return "instanceRoleTest0"; }
+  }
+})], Class('ClassTest', {
+  does: [RoleTest0],
+  classMethods: {
+    methods: function() { return "classMethods"; }
+  },
+  methods: {
+    methods: function() { return "methods"; },
+    method0: function() { return "method0"; },
+    method1: function() { return "method1"; }
+  }
+}))
+
+
+function IsaTest(klazz) {
+  assertEQ('TestBase.methodtestBase', TestBase.methodtestBase(), 'classMethodtestBase');
+  assertEQ('TestBase.methodtestBaseOverride', TestBase.methodtestBaseOverride(), 'classMethodtestBaseOverride')
+  var testbase = new TestBase();
+  assertEQ('testbase.methodtestBase', testbase.methodtestBase(), 'methodtestBase')
+  assertEQ('testbase.methodtestBaseOverride', testbase.methodtestBaseOverride(), 'methodtestBaseOverride')
+
+
+//console.log('FIRST:'+JSON.stringify(Joose.O.keys(FirstChild)))
+  assertEQ('FirstChild.methodtestBase', FirstChild.methodtestBase(), 'classMethodtestBase');
+  assertEQ('FirstChild.methodfirstChild', FirstChild.methodfirstChild(), 'classMethodfirstChild');
+  assertEQ('FirstChild.methodtestBaseOverride', FirstChild.methodtestBaseOverride(), 'classMethodfirstChildOverride')
+  assertEQ('FirstChild.methodfirstChildOverride', FirstChild.methodfirstChildOverride(), 'classMethodfirstChildOverride')
+
+  var firstchild = new FirstChild();
+  assertEQ('firstchild.methodtestBase', firstchild.methodtestBase(), 'methodtestBase');
+  assertEQ('firstchild.methodfirstChild', firstchild.methodfirstChild(), 'methodfirstChild');
+  assertEQ('firstchild.methodtestBaseOverride', firstchild.methodtestBaseOverride(), 'methodfirstChildOverride')
+  assertEQ('firstchild.methodfirstChildOverride', firstchild.methodfirstChildOverride(), 'methodfirstChildOverride')
+
+  assertEQ('SecondChild.methodtestBase', SecondChild.methodtestBase(), 'classMethodtestBase');
+  assertEQ('SecondChild.methodfirstChild', SecondChild.methodfirstChild(), 'classMethodfirstChild');
+  assertEQ('SecondChild.methodsecondChild', SecondChild.methodsecondChild(), 'classMethodsecondChild');
+  assertEQ('SecondChild.methodtestBaseOverride', SecondChild.methodtestBaseOverride(), 'classMethodsecondChildOverride')
+  assertEQ('SecondChild.methodfirstChildOverride', SecondChild.methodfirstChildOverride(), 'classMethodsecondChildOverride')
+
+  var secondchild = new SecondChild();
+  assertEQ('secondchild.methodtestBase', secondchild.methodtestBase(), 'methodtestBase');
+  assertEQ('secondchild.methodfirstChild', secondchild.methodfirstChild(), 'methodfirstChild');
+  assertEQ('secondchild.methodsecondChild', secondchild.methodsecondChild(), 'methodsecondChild');
+  assertEQ('secondchild.methodtestBaseOverride', secondchild.methodtestBaseOverride(), 'methodsecondChildOverride')
+  assertEQ('secondchild.methodfirstChildOverride', secondchild.methodfirstChildOverride(), 'methodsecondChildOverride')
+}
+
+IsaTest(Class('SecondChild', {
+  isa: Class('FirstChild', {
+          isa: Class('TestBase', {
+                has: {
+                  x: {
+                        is: "rw",
+                        init: 0
+                     }
+                },
+                classMethods: {
+                  methodtestBase: function() { return "classMethodtestBase" },
+                  methodtestBaseOverride: function() { return "classMethodtestBaseOverride" }
+                },
+                methods: {
+                  initialize: function() { 
+                    this.track = ['testBase'] 
+                  },
+                  methodtestBase: function() { return "methodtestBase" },
+                  methodtestBaseOverride: function() { return "methodtestBaseOverride" }
+                }
+          }),
+          classMethods: {
+            methodfirstChild: function() { return "classMethodfirstChild" },
+            methodtestBaseOverride: function() { return "classMethodfirstChildOverride" },
+            methodfirstChildOverride: function() { return "classMethodfirstChildOverride" }
+          },
+          override: {
+            initialize: function() {
+              this.SUPER();
+              this.track.push('FirstChild')
+            }
+          },
+          methods: {
+            methodfirstChild: function() { return "methodfirstChild" },
+            methodtestBaseOverride: function() { return "methodfirstChildOverride" },
+            methodfirstChildOverride: function() { return "methodfirstChildOverride" }
+          }
+ }),
+  classMethods: {
+    methodsecondChild: function() { return "classMethodsecondChild" },
+    methodtestBaseOverride: function() { return "classMethodsecondChildOverride" },
+    methodfirstChildOverride: function() { return "classMethodsecondChildOverride" }
+  },
+  override: {
+    initialize: function() {
+      this.SUPER();
+      this.track.push(this.meta.getName())
+    }
+  },
+  methods: {
+    methodsecondChild: function() { return "methodsecondChild" },
+    methodtestBaseOverride: function() { return "methodsecondChildOverride" },
+    methodfirstChildOverride: function() { return "methodsecondChildOverride" }
+  }
+}))
+
+
+IsaTest(Class('SecondChild', {
+  isa: [Class('FirstChild', {
+          does: Role('RoleTestBase', {
+                has: {
+                  x: {
+                        is: "rw",
+                        init: 0
+                     }
+                },
+                classMethods: {
+                  methodtestBase: function() { return "classMethodtestBase" },
+                  methodtestBaseOverride: function() { return "classMethodfirstChildOverride" }
+                },
+                methods: {
+                  initialize: function() { 
+                    this.track = ['testBase'] 
+                  },
+                  methodtestBase: function() { return "methodtestBase" },
+                  methodtestBaseOverride: function() { return "methodfirstChildOverride" }
+                }
+          }),
+          classMethods: {
+            methodfirstChild: function() { return "classMethodfirstChild" },
+            methodtestBaseOverride: function() { return "classMethodfirstChildOverride" },
+            methodfirstChildOverride: function() { return "classMethodfirstChildOverride" }
+          },
+          override: {
+            initialize: function() {
+              this.SUPER();
+              this.track.push('FirstChild')
+            }
+          },
+          methods: {
+            methodfirstChild: function() { return "methodfirstChild" },
+            methodtestBaseOverride: function() { return "methodfirstChildOverride" },
+            methodfirstChildOverride: function() { return "methodfirstChildOverride" }
+          }
+       }), Class('TestBase', {
+          has: {
+            x: {
+                  is: "rw",
+                  init: 0
+               }
+          },
+          classMethods: {
+            methodtestBase: function() { return "classMethodtestBase" },
+            methodtestBaseOverride: function() { return "classMethodtestBaseOverride" }
+          },
+          methods: {
+            initialize: function() { 
+              this.track = ['testBase'] 
+            },
+            methodtestBase: function() { return "methodtestBase" },
+            methodtestBaseOverride: function() { return "methodtestBaseOverride" }
+          }
+          })],
+  classMethods: {
+    methodsecondChild: function() { return "classMethodsecondChild" },
+    methodtestBaseOverride: function() { return "classMethodsecondChildOverride" },
+    methodfirstChildOverride: function() { return "classMethodsecondChildOverride" }
+  },
+  override: {
+    initialize: function() {
+      this.SUPER();
+      this.track.push(this.meta.getName())
+    }
+  },
+  methods: {
+    methodsecondChild: function() { return "methodsecondChild" },
+    methodtestBaseOverride: function() { return "methodsecondChildOverride" },
+    methodfirstChildOverride: function() { return "methodsecondChildOverride" }
+  }
+}))
 
 
