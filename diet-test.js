@@ -478,5 +478,82 @@ IsaTest(Class('SecondChild', {
 }))
 
 
+var start = new Date();
+for(var c = 0; c < 5000; ++c) {
+  _testbase = Class('TestBase'+c, {
+    has: {
+      x: {
+            is: "rw",
+            init: 0
+         }
+    },
+    classMethods: {
+      methodtestBase: function() { return "classMethodtestBase" },
+      methodtestBaseOverride: function() { return "classMethodtestBaseOverride" }
+    },
+    methods: {
+      initialize: function() { 
+        this.track = ['testBase'] 
+  console.log('initialize:testBase')
+      },
+      methodtestBase: function() { return "methodtestBase" },
+      methodtestBaseOverride: function() { return "methodtestBaseOverride" }
+    }
+  })
+
+  //console.log('*******************FirstChild*******************************')
+  _firstchild = Class('FirstChild'+c, {
+    isa: _testbase,
+    classMethods: {
+      methodfirstChild: function() { return "classMethodfirstChild" },
+      methodtestBaseOverride: function() { return "classMethodfirstChildOverride" },
+      methodfirstChildOverride: function() { return "classMethodfirstChildOverride" }
+    },
+    override: {
+      initialize: function() {
+        this.SUPER();
+        this.track.push('FirstChild')
+      }
+    },
+    methods: {
+      methodfirstChild: function() { return "methodfirstChild" },
+      methodtestBaseOverride: function() { return "methodfirstChildOverride" },
+      methodfirstChildOverride: function() { return "methodfirstChildOverride" }
+    }
+  })
+
+  //dump.apply(_firstchild.meta,[]);
+  //return
+
+  //for(var i in _testbase.meta.methods) {
+  //console.log('TestBase=>'+i+':'+_testbase.meta.methods[i].getBody())
+  //}
+  //a=new _firstchild();
+  //console.log("RESULT=>"+a.track)
+  //return
+
+  _secondchild = Class('SecondChild'+c, {
+    isa: _firstchild,
+    classMethods: {
+      methodsecondChild: function() { return "classMethodsecondChild" },
+      methodtestBaseOverride: function() { return "classMethodsecondChildOverride" },
+      methodfirstChildOverride: function() { return "classMethodsecondChildOverride" }
+    },
+    override: {
+      initialize: function() {
+        this.SUPER();
+        this.track.push(this.meta.getName())
+      }
+    },
+    methods: {
+      methodsecondChild: function() { return "methodsecondChild" },
+      methodtestBaseOverride: function() { return "methodsecondChildOverride" },
+      methodfirstChildOverride: function() { return "methodsecondChildOverride" }
+    }
+  })
+
+}
+var end = new Date();
+console.log("15000 Klasses in msec:"+(end-start));
 
 
