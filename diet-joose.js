@@ -1,13 +1,15 @@
 var util = require('util');
 
 (function() {
-  var classParser = ['isa', 'does', 'classMethods', 'methods', 'has', 'before', 'after', 'around', 'override']
+  var classParser = ['isa', 'classMethods', 'methods', 'has', 'does', 'before', 'after', 'around', 'override']
   var self = this;
   var Joose = {
     _: {
       firstUp: function (string) { 
         return string.charAt(0).toUpperCase() + string.slice(1);
       },
+      isArray: Array.isArray || function(obj) { return toString.call(obj) === '[object Array]'; },
+
       Module: {
         base: self,
         current: self,
@@ -16,6 +18,20 @@ var util = require('util');
         isa: function(name, key, klass, def) {
         },
         does: function(name, key, klass, def) {
+          var parts = def[key]
+          if (!parts) { return; }
+          if (!Joose._.isArray(parts)) { parts = [parts]; }
+          for(var p in parts) { 
+            var role = parts[p] 
+            for (var i in role.requires) {
+              var method = role.requires[i]
+              if (!klass.prototype[method]) {
+                throw "ERROR:Role["+role.meta.name+"] requires method ["+method+"] in class ["+klass.meta.name+"]"
+              }
+            }
+            Joose._.Class.classMethods(name, 'classMethods', klass, role);
+            Joose._.Class.methods(name, 'methods', klass, role);
+          }
         },
         helper: {
           methods: function(name, key, klass, def) {
@@ -124,11 +140,24 @@ var util = require('util');
         Joose._.Module.current = Joose._.Module.prev_current;
       }
     },
+    Role: function(name, def) {
+      def.meta = {
+                    name: name,
+                    isClass: false,
+                    isRole: true
+                 }
+      if (!def.requires) { def.requires = []; }
+      if (!Joose._.isArray(def.requires)) { def.requires = [def.requires]; }
+      Joose._.Module.current[name] = def;
+      return def;
+    },
     Class: function(name, def) {
       //var klass_prototype = function() { };
       var klass = function() { };
       klass.meta = {
         name: name,
+        isClass: true,
+        isRole: false,
         inits: { values: [], keys: [] }
         //class: klass_prototype 
       }
@@ -138,8 +167,7 @@ var util = require('util');
       }
       Joose._.Module.current[name] = klass;
       return klass;
-    },
-    Role: null
+    }
   }
   for (var i in Joose) {
     Joose._.Module.base[i] = Joose[i]
@@ -192,7 +220,7 @@ ClassMetaTest('TestClass', Class('TestClass', {}));
 
 
 function MethodsTest(names, klass) {
-console.log('MethodsTest:'+util.inspect(new klass()))
+//console.log('MethodsTest:'+util.inspect(new klass()))
   for(var i in names) {
     var name = names[i]
     for(var j in name) {
@@ -301,4 +329,114 @@ AopTest('overrideCallBack', ['before', 'orig', 'after', 'last'], Class('Override
     }
   }
 }));
-  
+
+function RoleDefinitionTest(name, role) {
+  assertEQ('RoleDefinitionTest:isClass', role.meta.isClass, false);
+  assertEQ('RoleDefinitionTest:isRole', role.meta.isRole, true)
+  assertEQ('RoleDefinitionTest:name', role.meta.name, name)
+}
+
+RoleDefinitionTest('RoleTest', Role('RoleTest', {
+  classMethods: {
+    roleClassMethod: function() { return "roleClassMethod"; }
+  },
+  methods: {
+    roleMethod: function() { return "roleMethod"; }
+  }
+}))
+
+function RoleClassDoes(roles, klass) {
+  assertEQ('RoleClassDoes:class.methods', klass.methods(), 'classMethods')
+  for(var i in roles) {
+    var role = roles[i]
+    for(var method in role.classMethods) {
+      assertEQ('RoleClassDoes:class:'+method, klass[method](), role.classMethods[method]())
+    }
+  }
+  var instance = new klass()
+  assertEQ('RoleClassDoes:instance.methods', instance.methods(), 'methods')
+  for(var i in roles) {
+    var role = roles[i]
+    for(var method in role.methods) {
+      assertEQ('RoleClassDoes:instance:'+method, instance[method](), role.methods[method]())
+    }
+  }
+}
+
+function RoleClassDoesFailure(exp, roles, klass) {
+  try {
+    RoleClassDoes(roles, klass());
+  } catch(e) {
+    assertEQ('RoleClassDoesFailure', exp, e)
+  }
+}
+
+RoleClassDoes([Role('RoleTest', {
+  requires: 'methods',
+  classMethods: {
+    roleClassMethod: function() { return "roleClassMethod"; }
+  },
+  methods: {
+    roleMethod: function() { return "roleMethod"; }
+  }
+})], Class('ClassTest', {
+  does: RoleTest,
+  classMethods: {
+    methods: function() { return "classMethods"; }
+  },
+  methods: {
+    methods: function() { return "methods"; }
+  }
+}))
+
+
+RoleClassDoesFailure('ERROR:Role[RoleTest] requires method [Failure] in class [ClassTest]', [Role('RoleTest', {
+  requires: 'Failure',
+  classMethods: {
+    roleClassMethod: function() { return "roleClassMethod"; }
+  },
+  methods: {
+    roleMethod: function() { return "roleMethod"; }
+  }
+})], function() { Class('ClassTest', {
+  does: RoleTest,
+  classMethods: {
+    methods: function() { return "classMethods"; }
+  },
+  methods: {
+    methods: function() { return "methods"; }
+  }
+}) })
+
+RoleClassDoes([Role('RoleTest0', {
+  requires: 'method0',
+  classMethods: {
+    classRoleTest0: function() { return "classRoleTest0"; }
+  },
+  methods: {
+    instanceRoleTest0: function() { return "instanceRoleTest0"; }
+  }
+}),
+Role('RoleTest1', {
+  requires: 'method1',
+  classMethods: {
+    classRoleTest1: function() { return "classRoleTest1"; }
+  },
+  methods: {
+    instanceRoleTest1: function() { return "instanceRoleTest1"; }
+  }
+})], Class('ClassTest', {
+  does: [RoleTest0, RoleTest1],
+  classMethods: {
+    methods: function() { return "classMethods"; }
+  },
+  methods: {
+    methods: function() { return "methods"; },
+    method0: function() { return "method0"; },
+    method1: function() { return "method1"; }
+  }
+}))
+
+
+
+
