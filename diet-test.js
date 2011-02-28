@@ -1,4 +1,5 @@
 
+var util = require('util');
 var Joose = require('./diet-joose').joose;
 
 function assert(title, c1) {
@@ -26,6 +27,39 @@ function ModuleTest() {
 
   Module('Level0.Level1.Level2.Level3', function(m) { m.test = 'OK' })
   assertEQ('Module.Level0.Level1.Level2.Level3', Level0.Level1.Level2.Level3.test, 'OK')
+
+  Module('Level10', function(m) { 
+    Module('Level11', function(m) { 
+      Module('Level12', function(m) { 
+      })
+    })
+  })
+  assertEQ('Level10:relative', Level10.meta._name.relative, 'Level10');
+  assertEQ('Level10:absolute', Level10.meta._name.absolute, 'Level10');
+
+  assertEQ('Level11:relative', Level10.Level11.meta._name.relative, 'Level11');
+  assertEQ('Level11:absolute', Level10.Level11.meta._name.absolute, 'Level10.Level11');
+
+  assertEQ('Level12:relative', Level10.Level11.Level12.meta._name.relative, 'Level12');
+  assertEQ('Level12:absolute', Level10.Level11.Level12.meta._name.absolute, 'Level10.Level11.Level12');
+
+
+  Module('Level0.Level1.Level2.Level3', function(m) { 
+    m.test = 'OK';
+    Class('Class4', { });
+    Role('Role4', { });
+  })
+  assertEQ('Module.Level0.Level1.Level2.Level3', Level0.Level1.Level2.Level3.test, 'OK')
+  assertEQ('Module.Level0.Level1.Level2.Level3', Level0.Level1.Level2.Level3.meta._name.absolute, 'Level0.Level1.Level2.Level3')
+  assertEQ('Module.Level0.Level1.Level2.Level3:Class4', Level0.Level1.Level2.Level3.Class4.meta._name.absolute, 'Level0.Level1.Level2.Level3.Class4')
+  assertEQ('Module.Level0.Level1.Level2.Level3:Role4',  Level0.Level1.Level2.Level3.Role4.meta._name.absolute, 'Level0.Level1.Level2.Level3.Role4')
+  Class('Level0.Level1.Level2.Level3.Class5', { });
+  Role('Level0.Level1.Level2.Level3.Role5', { });
+  assertEQ('Module.Level0.Level1.Level2.Level3:Class5:abs', Level0.Level1.Level2.Level3.Class5.meta._name.absolute, 'Level0.Level1.Level2.Level3.Class5')
+  assertEQ('Module.Level0.Level1.Level2.Level3:Role5:abs',  Level0.Level1.Level2.Level3.Role5.meta._name.absolute, 'Level0.Level1.Level2.Level3.Role5')
+  assertEQ('Module.Level0.Level1.Level2.Level3:Class5:rel', Level0.Level1.Level2.Level3.Class5.meta._name.relative, 'Class5')
+  assertEQ('Module.Level0.Level1.Level2.Level3:Role5:rel',  Level0.Level1.Level2.Level3.Role5.meta._name.relative, 'Role5')
+
 }
 ModuleTest();
 
@@ -37,7 +71,9 @@ ClassTest(Class('TestClass', {}));
 
 function ClassMetaTest(name, klass) {
   assert('ClassTest:meta:'+name, klass.meta)
-  assertEQ('ClassTest:meta:name:'+name, klass.meta.name, name)
+  assertEQ('ClassTest:meta:name:'+name, klass.meta._name.relative, name)
+  assertEQ('ClassTest:meta:getName:'+name, klass.meta.getName(), name)
+  assert('ClassTest:meta:'+name, klass.meta)
 }
 
 ClassMetaTest('TestClass', Class('TestClass', {}));
@@ -99,19 +135,19 @@ SetGetTest([{'Test': '4711'}], Class('TestClass', {
   }
 }));
 
-function AopTest(callback, step, klass) {
+function AopTest(title, callback, step, klass) {
   var instance = new klass();
   var idx = 0;
   var my = function(arg) {
-    assertEQ('AopTest:'+klass.meta.name+":"+step[idx], arg, step[idx])
+    assertEQ('AopTest:'+title+":"+klass.meta.getName()+":"+step[idx], arg, step[idx])
     idx++;
     return my;
   }
-  assertEQ('AopTest:'+klass.meta.name+':ret:', instance[callback](my), step[idx]);
+  assertEQ('AopTest:'+title+":"+klass.meta.getName()+':ret:', instance[callback](my), step[idx]);
 }
   
-
-AopTest('beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
+/* Without Role */
+AopTest('Class', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
   methods: {
     beforeCallBack: function(fn) {
       fn('orig')
@@ -125,7 +161,7 @@ AopTest('beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
   }
 }));
 
-AopTest('afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
+AopTest('Class', 'afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
   methods: {
     afterCallBack: function(fn) {
       fn('orig')
@@ -139,7 +175,7 @@ AopTest('afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
   }
 }));
   
-AopTest('overrideCallBack', ['before', 'orig', 'after', 'last'], Class('OverrideTest', {
+AopTest('Class', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class('OverrideTest', {
   methods: {
     overrideCallBack: function(fn) {
       return fn('orig');
@@ -154,10 +190,64 @@ AopTest('overrideCallBack', ['before', 'orig', 'after', 'last'], Class('Override
   }
 }));
 
+console.log('OverrideTest'+util.inspect(OverrideTest.meta.aops))
+console.log('AfterTest'+util.inspect(AfterTest.meta.aops))
+
+/* With Role */
+AopTest('Role', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
+  methods: {
+    beforeCallBack: function(fn) {
+      fn('orig')
+      return 'last';
+    }
+  },
+  does: Role({
+    before: {
+      beforeCallBack: function(fn) {
+        return fn('before') 
+      }
+    }
+  })
+}));
+
+AopTest('Role', 'afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
+  methods: {
+    afterCallBack: function(fn) {
+      fn('orig')
+      return 'last'
+    }
+  },
+  does: Role({
+    after: {
+      afterCallBack: function(fn) {
+        return fn('after') 
+      }
+    }
+  })
+}));
+  
+AopTest('Role', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class('OverrideTest', {
+  methods: {
+    overrideCallBack: function(fn) {
+      return fn('orig');
+    }
+  },
+  does: Role({
+    override: {
+      overrideCallBack: function(fn) {
+        this.SUPER(fn('before'));
+        fn('after')
+        return 'last';
+      }
+    }
+  })
+}));
+
+
 function RoleDefinitionTest(name, role) {
   assertEQ('RoleDefinitionTest:isClass', role.meta.isClass, false);
   assertEQ('RoleDefinitionTest:isRole', role.meta.isRole, true)
-  assertEQ('RoleDefinitionTest:name', role.meta.name, name)
+  assertEQ('RoleDefinitionTest:name', role.meta.getName(), name)
 }
 
 RoleDefinitionTest('RoleTest', Role('RoleTest', {
@@ -388,7 +478,7 @@ IsaTest(Class('SecondChild', {
     initialize: function() {
 //console.log('SecondChild:initialize:'+Joose.O.keys(this));
       this.SUPER();
-      this.track.push(this.meta.name)
+      this.track.push(this.meta.getName())
     }
   },
   methods: {
@@ -467,7 +557,7 @@ IsaTest(Class('SecondChild', {
   override: {
     initialize: function() {
       this.SUPER();
-      this.track.push(this.meta.name)
+      this.track.push(this.meta.getName())
     }
   },
   methods: {
@@ -477,6 +567,50 @@ IsaTest(Class('SecondChild', {
   }
 }))
 
+function DefaultConstructor() {
+  Class('ClassDefaultConstructor', {
+    has: {
+      x: { 
+            init: 4
+         }
+    }
+  })
+  var ins = new ClassDefaultConstructor({ x: 9, y: 7});
+  assertEQ("DefaultConstructor:getX", ins.getX(), 9);
+  assertEQ("DefaultConstructor:y", ins.y, 7);
+
+  Class('ClassDefaultConstructor', {
+    has: {
+      x: { 
+            init: 4
+         }
+    },
+    override: {
+      initialize: function() {
+        this.z = 18;
+      }
+    }
+  })
+  var ins = new ClassDefaultConstructor({ x: 9, y: 7});
+  assertEQ("DefaultConstructor:override:getX", ins.getX(), 9);
+  assertEQ("DefaultConstructor:override:y", ins.y, 7);
+  assertEQ("DefaultConstructor:override:z", ins.z, 18);
+}
+
+DefaultConstructor();
+
+function ClassToString() {
+  Class('ToString', {
+  });
+  assertEQ('ClassToString:toString', ToString.toString(), ToString.meta._name.absolute);
+  var ins = new ToString();
+  assertEQ('ClassToString:instance:toString', ins.toString(), ToString.meta._name.absolute+'<'+ins._oid+'>');
+}
+
+ClassToString();
+
+
+return;
 
 var start = new Date();
 for(var c = 0; c < 5000; ++c) {
