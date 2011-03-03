@@ -1,6 +1,8 @@
 
 var util = require('util');
 var Joose = require('./diet-joose').joose;
+require('./joose.singleton')
+
 
 function assert(title, c1) {
   if (c1) {
@@ -69,14 +71,43 @@ function ClassTest(klass) {
 }
 ClassTest(Class('TestClass', {}));
 
-function ClassMetaTest(name, klass) {
-  assert('ClassTest:meta:'+name, klass.meta)
-  assertEQ('ClassTest:meta:name:'+name, klass.meta._name.relative, name)
-  assertEQ('ClassTest:meta:getName:'+name, klass.meta.getName(), name)
-  assert('ClassTest:meta:'+name, klass.meta)
+var top = (function() { return this; })();
+function MetaTest(name, klass) {
+  assert('MetaTest:'+name.absolute, klass.meta)
+  assertEQ('MetaTest:name:rel:'+name.absolute, klass.meta._name.relative, name.relative)
+  assertEQ('MetaTest:name:abs:'+name.absolute, klass.meta._name.absolute, name.absolute)
+  assertEQ('MetaTest:getName:'+name.absolute, klass.meta.getName(), name.absolute)
+  var types = ['isModule', 'isRole', 'isClass'];
+  for(var i = 0; i < types.length; ++i) {
+	 if (types[i] != name.type) {
+  		assertEQ('MetaTest:type:'+name.absolute, klass.meta[types[i]], false)
+	 } 
+  }
+  assert('MetaTest:type:'+name.absolute, klass.meta[name.type])
+
+  var split = name.absolute.split('.')
+  var base = top;
+  for(var i = 0; i < split.length; ++i) {
+	 base = base[split[i]]
+  }
+  assert('MetaTest:type:'+name.absolute, base.meta.getName(), name.absolute);
+  assert('MetaTest:type:'+name.absolute, base.meta[name.type]);
+  for(var i = 0; i < types.length; ++i) {
+	 if (types[i] != name.type) {
+  		assertEQ('MetaTest:type:'+name.absolute, base.meta[types[i]], false)
+	 } 
+  }
 }
 
-ClassMetaTest('TestClass', Class('TestClass', {}));
+MetaTest({relative: 'CTestClass', absolute: 'CTestClass', type: 'isClass' }, Class('CTestClass', {}));
+MetaTest({relative: "CTestClass", absolute: 'CTest.CTestClass', type: 'isClass'}, Class('CTest.CTestClass', {}));
+
+MetaTest({relative: 'RTestClass', absolute: 'RTestClass', type: 'isRole' }, Role('RTestClass', {}));
+MetaTest({relative: "RTestClass", absolute: 'RTest.RTestClass', type: 'isRole'}, Role('RTest.RTestClass', {}));
+
+MetaTest({relative: 'MTestClass', absolute: 'MTestClass', type: 'isModule' }, Module('MTestClass', function(){}));
+MetaTest({relative: "MTestClass", absolute: 'MTest.MTestClass', type: 'isModule'}, Module('MTest.MTestClass', function(){}));
+
 
 
 function MethodsTest(names, klass) {
@@ -190,8 +221,8 @@ AopTest('Class', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class(
   }
 }));
 
-console.log('OverrideTest'+util.inspect(OverrideTest.meta.aops))
-console.log('AfterTest'+util.inspect(AfterTest.meta.aops))
+//console.log('OverrideTest'+util.inspect(OverrideTest.meta.aops))
+//console.log('AfterTest'+util.inspect(AfterTest.meta.aops))
 
 /* With Role */
 AopTest('Role', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
@@ -263,16 +294,16 @@ function RoleClassDoes(roles, klass) {
   assertEQ('RoleClassDoes:class.methods', klass.methods(), 'classMethods')
   for(var i in roles) {
     var role = roles[i]
-    for(var method in role.classMethods) {
-      assertEQ('RoleClassDoes:class:'+method, klass[method](), role.classMethods[method]())
+    for(var method in role.meta.def.classMethods) {
+      assertEQ('RoleClassDoes:class:'+method, klass[method](), role.meta.def.classMethods[method]())
     }
   }
   var instance = new klass()
   assertEQ('RoleClassDoes:instance.methods', instance.methods(), 'methods')
   for(var i in roles) {
     var role = roles[i]
-    for(var method in role.methods) {
-      assertEQ('RoleClassDoes:instance:'+method, instance[method](), role.methods[method]())
+    for(var method in role.meta.def.methods) {
+      assertEQ('RoleClassDoes:instance:'+method, instance[method](), role.meta.def.methods[method]())
     }
   }
 }
@@ -304,7 +335,7 @@ RoleClassDoes([Role('RoleTest', {
 }))
 
 
-RoleClassDoesFailure('ERROR:Role[RoleTest] requires method [Failure] in class [ClassTest]', [Role('RoleTest', {
+RoleClassDoesFailure('Error: Role[RoleTest] requires method [Failure] in class [ClassTest]', [Role('RoleTest', {
   requires: 'Failure',
   classMethods: {
     roleClassMethod: function() { return "roleClassMethod"; }
@@ -322,7 +353,9 @@ RoleClassDoesFailure('ERROR:Role[RoleTest] requires method [Failure] in class [C
   }
 }) })
 
-RoleClassDoes([Role('RoleTest0', {
+
+RoleClassDoes([
+Role('RoleTest0', {
   requires: 'method0',
   classMethods: {
     classRoleTest0: function() { return "classRoleTest0"; }
@@ -332,14 +365,16 @@ RoleClassDoes([Role('RoleTest0', {
   }
 }),
 Role('RoleTest1', {
-  requires: 'method1',
+  requires: ['method1'],
   classMethods: {
     classRoleTest1: function() { return "classRoleTest1"; }
   },
   methods: {
     instanceRoleTest1: function() { return "instanceRoleTest1"; }
   }
-})], Class('ClassTest', {
+})
+],
+Class('ClassTest', {
   does: [RoleTest0, RoleTest1],
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -602,12 +637,42 @@ DefaultConstructor();
 function ClassToString() {
   Class('ToString', {
   });
-  assertEQ('ClassToString:toString', ToString.toString(), ToString.meta._name.absolute);
+  assertEQ('ClassToString:toString', ToString.toString(), 'Joose:'+ToString.meta._name.absolute);
   var ins = new ToString();
   assertEQ('ClassToString:instance:toString', ins.toString(), ToString.meta._name.absolute+'<'+ins._oid+'>');
 }
 
 ClassToString();
+
+function SingleTon() {
+  Class('CSingleTon', {
+    does: Joose.Singleton,
+	 methods: {
+		singletonInitialize: function() {
+			this.specialInit = "Murks";
+		} 
+	 }
+  });
+  assertEQ('SingleTon:oid:', CSingleTon.getInstance()._oid, CSingleTon.getInstance()._oid);
+  assertEQ('SingleTon:oid:', CSingleTon.getInstance().specialInit, CSingleTon.getInstance().specialInit);
+
+  try {
+debugger;
+	  var ins = new CSingleTon();
+  } catch(e) {
+  	assertEQ('SingleTon:new:', "Error: The class CSingleTon is a singleton. Please use the class method getInstance().", e);
+  }
+}
+
+SingleTon()
+
+function MetaIsa(isit, klazz) {
+	assertEQ('MetaIsa:true', klazz.meta.isa(isit), true); 
+	assertEQ('MetaIsa:false', klazz.meta.isa(Class('Vogel', {})), false); 
+}
+
+
+MetaIsa(Class('Wurm', { }), Class('Gras', { isa: Class('Erde', { isa: Wurm }) }))
 
 
 return;
