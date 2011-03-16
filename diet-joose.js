@@ -360,7 +360,7 @@ var Joose = {
         isClass: type == 'Class',
         isModule: type == 'Module',
         isRole: type == 'Role',
-        nsparent: module,
+        nsparent: module
       };
     }
   },
