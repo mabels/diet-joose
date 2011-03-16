@@ -1,4 +1,7 @@
 //var util = require('util');
+if (typeof require == 'undefined') {
+  require = function() { }
+}
 
 if (typeof window === 'undefined') {
   if (typeof exports === 'undefined' ) {
@@ -7,7 +10,7 @@ if (typeof window === 'undefined') {
     var top = (function() { return this; })();
   }
 } else {
-  var top = this;
+  var top = window;
 }
 
 
@@ -171,10 +174,11 @@ var Joose = {
     anonymousName: function () {
       return 'Joose'+Joose._.nameId++;
     },
+    object: new Object(),
     firstUp: function (string) { 
       return string.charAt(0).toUpperCase() + string.slice(1);
     },
-    isArray: Array.isArray || function(obj) { return toString.call(obj) === '[object Array]'; },
+    isArray: Array.isArray || function(obj) { return this.object.toString.call(obj) === '[object Array]'; },
 
     Module: {
       base: top,
@@ -207,18 +211,17 @@ var Joose = {
         var parts = def[key]
         if (!parts) { return; }
         if (!Joose._.isArray(parts)) { def[key] = parts = [parts]; }
+        // OPT possible to do this in one step
+        var roles_to_apply = function(does, result, i) {
+          result.push.apply(result, does);
+          for(i = does.length-1; i>= 0; --i) {
+            does[i].meta.def.does.length && roles_to_apply(does[i].meta.def.does, result);	
+          }
+          return result;
+        }
+        roles = roles_to_apply(parts, [])
 
-		  // OPT possible to do this in one step
-		  var roles_to_apply = function(does, result, i) {
-				result.push.apply(result, does);
-				for(var i = does.length-1; i>= 0; --i) {
-					does[i].meta.def.does.length && roles_to_apply(does[i].meta.def.does, result);	
-				}
-				return result;
-		  }
-		  roles = roles_to_apply(parts, [])
-
-		  for(var p = roles.length - 1; p >= 0; --p) {
+        for(var p = roles.length - 1; p >= 0; --p) {
           var role = roles[p]; 
           for (var i in role.meta.def.requires) {
             var method = role.meta.def.requires[i]
@@ -408,9 +411,9 @@ var Joose = {
     return Joose.Module(name, function(current) {
 //console.log('Define:Role:'+name+":"+current.meta.getName());
 		 if (!def.requires) { def.requires = []; }
-		 if (!Joose._.isArray(def.requires)) { def.requires = [def.requires]; }
+		 else if (!Joose._.isArray(def.requires)) { def.requires = [def.requires]; }
 		 if (!def.does) { def.does = []; }
-		 if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
+     else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
 		 current.meta.def = def;
 	 }, 'Role');
   },
@@ -425,10 +428,11 @@ var Joose = {
       this.initialize && this.initialize.apply(this, arguments);
     };
     Joose.Module(name, function(current) {
+//console.log(name, current);
 		 klass.meta = current.meta;
 		 klass.meta.inits = { values: [], keys: [] };
 		 klass.meta.def = def;
-		 klass.meta.class = klass;
+		 klass.meta.klass = klass;
        Joose._.Class.addMeta(klass);
 
 		 for(var i in Joose._.classParser) {

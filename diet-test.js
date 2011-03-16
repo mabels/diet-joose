@@ -1,6 +1,6 @@
 
 var util = require('util');
-var Joose = require('./diet-joose').joose;
+require('./diet-joose');
 require('./joose.singleton')
 
 
@@ -16,7 +16,7 @@ function assertEQ(title, c1, c2) {
   if (c1 != c2) {
     console.error('ERROR on:'+title+":"+c1+"!="+c2);
   } else {
-    console.error('OK:'+title)
+    console.log('OK:'+title)
   }
 }
 
@@ -316,6 +316,7 @@ function RoleClassDoesFailure(exp, roles, klass) {
   }
 }
 
+//debugger;
 RoleClassDoes([Role('RoleTest', {
   requires: 'methods',
   classMethods: {
@@ -324,7 +325,7 @@ RoleClassDoes([Role('RoleTest', {
   methods: {
     roleMethod: function() { return "roleMethod"; }
   }
-})], Class('ClassTest', {
+})], Class('xClassTest', {
   does: RoleTest,
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -335,7 +336,7 @@ RoleClassDoes([Role('RoleTest', {
 }))
 
 
-RoleClassDoesFailure('Error: Role[RoleTest] requires method [Failure] in class [ClassTest]', [Role('RoleTest', {
+RoleClassDoesFailure('Error: Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
   requires: 'Failure',
   classMethods: {
     roleClassMethod: function() { return "roleClassMethod"; }
@@ -343,7 +344,7 @@ RoleClassDoesFailure('Error: Role[RoleTest] requires method [Failure] in class [
   methods: {
     roleMethod: function() { return "roleMethod"; }
   }
-})], function() { Class('ClassTest', {
+})], function() { Class('xClassTest', {
   does: RoleTest,
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -374,7 +375,7 @@ Role('RoleTest1', {
   }
 })
 ],
-Class('ClassTest', {
+Class('xClassTest', {
   does: [RoleTest0, RoleTest1],
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -405,7 +406,7 @@ RoleClassDoes([Role('RoleTest0', {
   methods: {
     instanceRoleTest0: function() { return "instanceRoleTest0"; }
   }
-})], Class('ClassTest', {
+})], Class('xClassTest', {
   does: [RoleTest0],
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -635,11 +636,11 @@ function DefaultConstructor() {
 DefaultConstructor();
 
 function ClassToString() {
-  Class('ToString', {
+  Class('xToString', {
   });
-  assertEQ('ClassToString:toString', ToString.toString(), 'Joose:'+ToString.meta._name.absolute);
-  var ins = new ToString();
-  assertEQ('ClassToString:instance:toString', ins.toString(), ToString.meta._name.absolute+'<'+ins._oid+'>');
+  assertEQ('ClassToString:toString', xToString.toString(), 'Joose:'+xToString.meta._name.absolute);
+  var ins = new xToString();
+  assertEQ('ClassToString:instance:toString', ins.toString(), xToString.meta._name.absolute+'<'+ins._oid+'>');
 }
 
 ClassToString();
@@ -657,7 +658,7 @@ function SingleTon() {
   assertEQ('SingleTon:oid:', CSingleTon.getInstance().specialInit, CSingleTon.getInstance().specialInit);
 
   try {
-debugger;
+//debugger;
 	  var ins = new CSingleTon();
   } catch(e) {
   	assertEQ('SingleTon:new:', "Error: The class CSingleTon is a singleton. Please use the class method getInstance().", e);
@@ -675,10 +676,8 @@ function MetaIsa(isit, klazz) {
 MetaIsa(Class('Wurm', { }), Class('Gras', { isa: Class('Erde', { isa: Wurm }) }))
 
 
-return;
-
 var start = new Date();
-for(var c = 0; c < 5000; ++c) {
+for(var c = 60000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
     has: {
       x: {
