@@ -679,7 +679,7 @@ function SingleTon() {
 //debugger;
 	  var ins = new CSingleTon();
   } catch(e) {
-  	assertEQ('SingleTon:new:', "Error: The class CSingleTon is a singleton. Please use the class method getInstance().", e);
+  	assertEQ('SingleTon:new:', "The class CSingleTon is a singleton. Please use the class method getInstance().", e.message);
   }
 }
 
