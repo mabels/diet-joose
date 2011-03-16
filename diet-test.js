@@ -330,7 +330,7 @@ function RoleClassDoesFailure(exp, roles, klass) {
   try {
     RoleClassDoes(roles, klass());
   } catch(e) {
-    assertEQ('RoleClassDoesFailure', exp, e.toString())
+    assertEQ('RoleClassDoesFailure', exp, e.message)
   }
 }
 
@@ -354,7 +354,7 @@ RoleClassDoes([Role('RoleTest', {
 }))
 
 
-RoleClassDoesFailure('Error: Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
+RoleClassDoesFailure('Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
   requires: 'Failure',
   classMethods: {
     roleClassMethod: function() { return "roleClassMethod"; }
