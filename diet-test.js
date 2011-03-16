@@ -161,7 +161,7 @@ function SetGetTest(names, klass) {
 SetGetTest([{'Test': '4711'}], Class('TestClass', {
   has: {
     test: {
-      is: "rw",
+      is: "rw"
     }
   }
 }));

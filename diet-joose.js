@@ -287,7 +287,7 @@ var Joose = {
           for(var i in part) {
             klass.prototype[i] = Joose._.Class.helper[name](part[i], klass.prototype[i]);
           }
-        },
+        }
       },
       classMethods: function(key, klass, def) {
         Joose._.Class.helper.methods(key, klass, def[key]);
