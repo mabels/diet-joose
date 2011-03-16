@@ -12,6 +12,24 @@ function assert(title, c1) {
     assertEQ(title, false, true);
   }
 }
+if ($) {
+  if (!console) {
+    console = {}
+  }
+  var toArray = function(a) {
+    var ret = [];
+    for(var i = 0; i < a.length; ++i) {
+      ret.push(a[i]); 
+    }
+    return ret;
+  }
+  console.log= function() {
+                $('<pre style="margin: 0; color: green;">'+toArray(arguments).join(",")+'</pre>').appendTo($('body'))
+              }
+  console.error= function() {
+                $('<pre style="margin: 0; color: red;">'+toArray(arguments).join(",")+'</pre>').appendTo($('body'))
+              }
+}
 function assertEQ(title, c1, c2) {
   if (c1 != c2) {
     console.error('ERROR on:'+title+":"+c1+"!="+c2);
@@ -312,7 +330,7 @@ function RoleClassDoesFailure(exp, roles, klass) {
   try {
     RoleClassDoes(roles, klass());
   } catch(e) {
-    assertEQ('RoleClassDoesFailure', exp, e)
+    assertEQ('RoleClassDoesFailure', exp, e.toString())
   }
 }
 
