@@ -12,8 +12,8 @@ function assert(title, c1) {
     assertEQ(title, false, true);
   }
 }
-if ($) {
-  if (!console) {
+if (typeof $ != 'undefined') {
+  if (typeof console == 'undefined') {
     console = {}
   }
   var toArray = function(a) {
