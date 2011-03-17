@@ -145,6 +145,22 @@ function MetaInstantiateTest(klass) {
 MetaInstantiateTest(Class('MetaInstantiateTestClass', {
 }))
 
+function MetaInstantiateContructorParametersTest(klass) {
+  var inst = klass.meta.instantiate('a', 'b', 'c');
+  assertEQ('MetaInstantiateContructorParametersTest:a', inst.a, 'a');
+  assertEQ('MetaInstantiateContructorParametersTest:b', inst.b, 'b');
+  assertEQ('MetaInstantiateContructorParametersTest:c', inst.c, 'c');
+}
+MetaInstantiateContructorParametersTest(Class('MetaInstantiateContructorParametersTest', {
+  methods: {
+    initialize: function(a, b, c) {
+      this.a = a;
+      this.b = b;
+      this.c = c;
+    }
+  }
+}))
+
 
 function MethodsTest(names, klass) {
 //console.log('MethodsTest:'+util.inspect(new klass()))

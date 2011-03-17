@@ -488,7 +488,13 @@ var Joose = {
 		 } else {
 			klass.prototype.initialize = inits;
 		 }
-     klass.meta.instantiate = function() { return new klass(); };
+     klass.meta.instantiate = function() { 
+       var f = function () {};
+       f.prototype = this['class'].prototype;
+       var obj = new f();
+       obj.initialize.apply(obj, arguments);
+       return obj;
+     };
 		 klass.prototype = klass.prototype || {}
 		 klass.prototype.meta = klass.meta;
 	//console.log(util.inspect(klass.meta._name));
