@@ -138,6 +138,12 @@ MetaClassTest('myClassMethod', Class('CTestMetaClass', {
 }))
 
 
+function MetaInstantiateTest(klass) {
+  assertEQ('MetaInstantiateTest:instantiate1', typeof klass.meta.instantiate, 'function');
+  assert('MetaInstantiateTest:instantiate2', klass.meta.instantiate() instanceof MetaInstantiateTestClass);
+}
+MetaInstantiateTest(Class('MetaInstantiateTestClass', {
+}))
 
 
 function MethodsTest(names, klass) {
@@ -661,6 +667,19 @@ function DefaultConstructor() {
   assertEQ("DefaultConstructor:override:getX", ins.getX(), 9);
   assertEQ("DefaultConstructor:override:y", ins.y, 7);
   assertEQ("DefaultConstructor:override:z", ins.z, 18);
+
+  Class('PropertiesShouldNotOverrideMethods', {
+    has: {
+      x: { init: 2 }
+    },
+    methods: {
+      method: function() { return "method"; }
+    }
+  })
+  ins = new PropertiesShouldNotOverrideMethods({ x: 5, method: "property" });
+  assertEQ('PropertiesShouldNotOverrideMethods:x', ins.getX(), 5);
+  assertEQ('PropertiesShouldNotOverrideMethods:method', typeof ins.method, 'function');
+  assertEQ('PropertiesShouldNotOverrideMethods:method', ins.method(), 'method');
 }
 
 DefaultConstructor();

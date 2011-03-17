@@ -477,7 +477,7 @@ var Joose = {
 				 var fname = 'set'+Joose._.firstUp(i);
 				 if (this[fname]) {
 					this[fname](params[i]);
-				 } else {
+				 } else if (!this[i]) {
 					this[i] = params[i];
 				 }
 			  }
@@ -488,6 +488,7 @@ var Joose = {
 		 } else {
 			klass.prototype.initialize = inits;
 		 }
+     klass.meta.instantiate = function() { return new klass(); };
 		 klass.prototype = klass.prototype || {}
 		 klass.prototype.meta = klass.meta;
 	//console.log(util.inspect(klass.meta._name));
