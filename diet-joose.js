@@ -5,12 +5,12 @@ if (typeof require == 'undefined') {
 
 if (typeof window === 'undefined') {
   if (typeof exports === 'undefined' ) {
-    var top = this;
+    var joosetop = this;
   } else {
-    var top = (function() { return this; })();
+    var joosetop = (function() { return this; })();
   }
 } else {
-  var top = window;
+  var joosetop = window;
 }
 
 
@@ -181,8 +181,8 @@ var Joose = {
     isArray: Array.isArray || function(obj) { return this.object.toString.call(obj) === '[object Array]'; },
 
     Module: {
-      base: top,
-      current: top,
+      base: joosetop,
+      current: joosetop,
       buildName: function(name) {
 
         return (Joose._.Module.current.meta._name || (Joose._.Module.current.meta._name+'.')) + name;
@@ -302,6 +302,13 @@ var Joose = {
           for(var i in part) {
             klass.prototype[i] = Joose._.Class.helper[name](part[i], klass.prototype[i]);
           }
+        },
+        instantiate: function() { 
+          var f = function () {};
+          f.prototype = this['class'].prototype;
+          var obj = new f();
+          obj.initialize.apply(obj, arguments);
+          return obj;
         }
       },
       classMethods: function(key, klass, def, notOverride) {
@@ -488,13 +495,7 @@ var Joose = {
 		 } else {
 			klass.prototype.initialize = inits;
 		 }
-     klass.meta.instantiate = function() { 
-       var f = function () {};
-       f.prototype = this['class'].prototype;
-       var obj = new f();
-       obj.initialize.apply(obj, arguments);
-       return obj;
-     };
+     klass.meta.instantiate = Joose._.Class.helper.instantiate;
 		 klass.prototype = klass.prototype || {}
 		 klass.prototype.meta = klass.meta;
 	//console.log(util.inspect(klass.meta._name));
@@ -506,17 +507,17 @@ var Joose = {
 
 var old = Joose;
 
-top.Joose = function() {}
+joosetop.Joose = function() {}
 for(var i in old) {
-	top.Joose[i] = old[i];
+	joosetop.Joose[i] = old[i];
 }
 
-top.meta = Joose._.Meta(null, 'Module', top);
-Joose.joose = { top: top };
-top.Class = Joose.Class;
-top.Role = Joose.Role;
-top.Module = Joose.Module;
+joosetop.meta = Joose._.Meta(null, 'Module', joosetop);
+Joose.joose = { joosetop: joosetop };
+joosetop.Class = Joose.Class;
+joosetop.Role = Joose.Role;
+joosetop.Module = Joose.Module;
 
 if (typeof exports !== 'undefined' ) {
-  exports.joose = top.Joose ;
+  exports.joose = joosetop.Joose ;
 }

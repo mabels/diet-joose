@@ -140,9 +140,18 @@ MetaClassTest('myClassMethod', Class('CTestMetaClass', {
 
 function MetaInstantiateTest(klass) {
   assertEQ('MetaInstantiateTest:instantiate1', typeof klass.meta.instantiate, 'function');
-  assert('MetaInstantiateTest:instantiate2', klass.meta.instantiate() instanceof MetaInstantiateTestClass);
+  var inst = klass.meta.instantiate();
+  assert('MetaInstantiateTest:instantiate2', inst instanceof MetaInstantiateTestClass);
+  assertEQ('MetaInstantiateTest:classMethod', inst.meta['class'].classMethod(), 'classMethod');
+  assertEQ('MetaInstantiateTest:method', inst.method(), 'method');
 }
 MetaInstantiateTest(Class('MetaInstantiateTestClass', {
+  classMethods: {
+    classMethod: function() { return 'classMethod'; }
+  },
+  methods: {
+    method: function() { return 'method'; }
+  }
 }))
 
 function MetaInstantiateContructorParametersTest(klass) {
@@ -151,7 +160,7 @@ function MetaInstantiateContructorParametersTest(klass) {
   assertEQ('MetaInstantiateContructorParametersTest:b', inst.b, 'b');
   assertEQ('MetaInstantiateContructorParametersTest:c', inst.c, 'c');
 }
-MetaInstantiateContructorParametersTest(Class('MetaInstantiateContructorParametersTest', {
+MetaInstantiateContructorParametersTest(Class('MetaInstantiateContructorParametersTestClass', {
   methods: {
     initialize: function(a, b, c) {
       this.a = a;
@@ -781,7 +790,7 @@ RolesShouldHaveClassMethods('roleClassMethod', Role('uu', {
 
 
 var start = new Date();
-for(var c = 0000; c < 5000; ++c) {
+for(var c = 60000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
     has: {
       x: {
