@@ -10,7 +10,7 @@ require('./diet-joose');
 Role("Joose.Singleton", {
  before: {
 	  initialize: function () {
-			if(this.meta.klass.__instance) {
+			if(this.meta['class'].__instance) {
 				 throw new Error("The class "+this.meta.className()+" is a singleton. Please use the class method getInstance().")
 			}
 	  }
@@ -27,7 +27,7 @@ Role("Joose.Singleton", {
 			if(this.__instance) {
 				 return this.__instance;
 			}
-			this.__instance            = new this.meta.klass()
+			this.__instance            = new this.meta['class']()
 			this.__instance.singletonInitialize.apply(this.__instance, arguments)
 			return this.__instance;
 	  }
