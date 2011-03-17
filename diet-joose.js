@@ -449,6 +449,7 @@ var Joose = {
 		 klass.meta.inits = { values: [], keys: [] };
 		 klass.meta.def = def;
 		 klass.meta['class'] = klass;
+		 klass.meta['c'] = klass;
        Joose._.Class.addMeta(klass);
 
 		 for(var i in Joose._.classParser) {

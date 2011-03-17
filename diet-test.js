@@ -126,6 +126,18 @@ MetaTest({relative: "RTestClass", absolute: 'RTest.RTestClass', type: 'isRole'},
 MetaTest({relative: 'MTestClass', absolute: 'MTestClass', type: 'isModule' }, Module('MTestClass', function(){}));
 MetaTest({relative: "MTestClass", absolute: 'MTest.MTestClass', type: 'isModule'}, Module('MTest.MTestClass', function(){}));
 
+function MetaClassTest(exp, klass) {
+  assertEQ('MetaClassTest:class', klass.meta['class'].myClassMethod(), exp);
+  assertEQ('MetaClassTest:c', klass.meta.c.myClassMethod(), exp);
+}
+
+MetaClassTest('myClassMethod', Class('CTestMetaClass', {
+  classMethods: {
+    myClassMethod: function() { return "myClassMethod" }
+  }
+}))
+
+
 
 
 function MethodsTest(names, klass) {
