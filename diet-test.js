@@ -693,9 +693,48 @@ function MetaIsa(isit, klazz) {
 
 MetaIsa(Class('Wurm', { }), Class('Gras', { isa: Class('Erde', { isa: Wurm }) }))
 
+function RolesShouldNotOverrideClassMethods(exp, klass) {
+  assertEQ('RolesShouldNotOverrideClassMethods', klass.dontOverride(), exp);
+}
+
+RolesShouldNotOverrideClassMethods('ImFromClass', Class('RoleDoesNotOverrideClassMethods', {
+  does: Role('RoleCouldOverrideClassMethods', {
+    classMethods: {
+      dontOverride: function() { return 'ImFromRole'; } 
+    }
+  }),
+  classMethods: {
+    dontOverride: function() { return 'ImFromClass';
+    }
+  }
+}))
+
+RolesShouldNotOverrideClassMethods('ImFromRoleI', Class('RoleDoesNotOverrideClassMethods', {
+  does: [Role('RoleI', {
+                          classMethods: {
+                            dontOverride: function() { return 'ImFromRoleI'; } 
+                          }
+         }), 
+         Role('RoleII', {
+                          classMethods: {
+                            dontOverride: function() { return 'ImFromRoleII'; }
+                          }
+        })]
+}))
+
+function RolesShouldHaveClassMethods(exp, role) {
+  assertEQ('RolesShouldHaveClassMethods', role.classMethod(), exp);
+}
+
+RolesShouldHaveClassMethods('roleClassMethod', Role('uu', {
+  classMethods: {
+    classMethod: function() { return 'roleClassMethod'; }
+  }
+}))
+
 
 var start = new Date();
-for(var c = 60000; c < 5000; ++c) {
+for(var c = 0000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
     has: {
       x: {

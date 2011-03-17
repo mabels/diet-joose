@@ -221,7 +221,7 @@ var Joose = {
         }
         roles = roles_to_apply(parts, [])
 
-        for(var p = roles.length - 1; p >= 0; --p) {
+        for(var p = 0, l = roles.length; p < l; ++p) {
           var role = roles[p]; 
           for (var i in role.meta.def.requires) {
             var method = role.meta.def.requires[i]
@@ -231,22 +231,37 @@ var Joose = {
           }
           for(var i in Joose._.roleParser) {
             var key = Joose._.roleParser[i];
-            Joose._.Class[key](key, klass, role.meta.def)
+            Joose._.Class[key](key, klass, role.meta.def, 'classMethods' == key)
           }
         }
       },
       helper: {
-        methods: function(key, klass, def) {
-          var part = def;
-          if (!part) { return }
-          //var meta = part.meta;
-          //delete part.meta;
-          for(var i in part) {
-            if (i != 'meta') {
-              klass[i] = part[i];
+        methodLoop: function(notOverride) {
+          if (notOverride) {
+            return function(klass, part) {
+              for(var i in part) {
+                !klass[i] && (klass[i] = part[i]);
+              }
+            } 
+          } else {
+            return function(klass, part) {
+              for(var i in part) {
+                klass[i] = part[i];
+              }
             }
           }
-          //part.meta = meta;
+        },
+        methods: function(key, klass, def, notOverride) {
+          var part = def;
+          if (!part) { return }
+          var meta = part['meta']; 
+          if (meta) {
+            delete part.meta;
+            this.methodLoop(notOverride)(klass, part);
+            part.meta = meta;
+          } else {
+            this.methodLoop(notOverride)(klass, part);
+          }
         },
         around: function (func, orig) {
             return function aroundWrapper () {
@@ -289,8 +304,8 @@ var Joose = {
           }
         }
       },
-      classMethods: function(key, klass, def) {
-        Joose._.Class.helper.methods(key, klass, def[key]);
+      classMethods: function(key, klass, def, notOverride) {
+        Joose._.Class.helper.methods(key, klass, def[key], notOverride);
       },
       methods: function(key, klass, def) {
         klass.prototype = klass.prototype || {};
@@ -415,6 +430,7 @@ var Joose = {
 		 if (!def.does) { def.does = []; }
      else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
 		 current.meta.def = def;
+     Joose._.Class.helper.methods('', current, current.meta.def['classMethods']);
 	 }, 'Role');
   },
   Class: function(name, def) {
