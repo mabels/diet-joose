@@ -1,4 +1,4 @@
-require('./diet-joose');
+//require('./diet-joose');
 
 /**
 * Joose.Singleton

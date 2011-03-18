@@ -1,7 +1,28 @@
 
-var util = require('util');
+/*
+if (typeof(require) == 'undefined' && typeof(imports) == 'object') {
+  var require = function(a) { return imports[a]; }
+  var console = {
+              log: print,
+              error: print
+            }
+} else */ if (typeof(require) == 'undefined' && typeof(load) == 'function') {
+  // Rhino
+  require = function(a) { return load(a+'.js'); }
+  console = {
+              log: print,
+              error: print
+            }
+} else {
+  if (typeof require == 'undefined') {
+    // Browser
+    require = function() { }
+  }
+}
+
 require('./diet-joose');
 require('./joose.singleton')
+
 
 
 function assert(title, c1) {
@@ -497,14 +518,19 @@ function IsaTest(klazz) {
   var firstchild = new FirstChild();
   assertEQ('firstchild.methodtestBase', firstchild.methodtestBase(), 'methodtestBase');
   assertEQ('firstchild.methodfirstChild', firstchild.methodfirstChild(), 'methodfirstChild');
+
+  //ERROR on:firstchild.methodtestBaseOverride-:methodsecondChildOverride!=methodfirstChildOverride
+  //ERROR on:firstchild.methodfirstChildOverride-:methodsecondChildOverride!=methodfirstChildOverride
   assertEQ('firstchild.methodtestBaseOverride', firstchild.methodtestBaseOverride(), 'methodfirstChildOverride')
-  assertEQ('firstchild.methodfirstChildOverride', firstchild.methodfirstChildOverride(), 'methodfirstChildOverride')
+  assertEQ('firstchild.methodfirstChildOverride', firstchild.methodfirstChildOverride(), 'methodfirstChildOverride');
+
 
   assertEQ('SecondChild.methodtestBase', SecondChild.methodtestBase(), 'classMethodtestBase');
   assertEQ('SecondChild.methodfirstChild', SecondChild.methodfirstChild(), 'classMethodfirstChild');
   assertEQ('SecondChild.methodsecondChild', SecondChild.methodsecondChild(), 'classMethodsecondChild');
   assertEQ('SecondChild.methodtestBaseOverride', SecondChild.methodtestBaseOverride(), 'classMethodsecondChildOverride')
   assertEQ('SecondChild.methodfirstChildOverride', SecondChild.methodfirstChildOverride(), 'classMethodsecondChildOverride')
+
 
   var secondchild = new SecondChild();
   assertEQ('secondchild.methodtestBase', secondchild.methodtestBase(), 'methodtestBase');
@@ -520,6 +546,7 @@ function IsaTest(klazz) {
   assertEQ('secondchild.track.0', secondchild.track[0], 'testBase')
   assertEQ('secondchild.track.1', secondchild.track[1], 'FirstChild')
   assertEQ('secondchild.track.2', secondchild.track[2], 'SecondChild')
+//exit(0);
 }
 
 IsaTest(Class('SecondChild', {
@@ -584,7 +611,6 @@ IsaTest(Class('SecondChild', {
     methodfirstChildOverride: function() { return "methodsecondChildOverride" }
   }
 }))
-
 
 IsaTest(Class('SecondChild', {
   isa: [Class('FirstChild', {
