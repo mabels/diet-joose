@@ -184,6 +184,13 @@ var Joose = {
         return (Joose._.Module.current.meta._name || (Joose._.Module.current.meta._name+'.')) + name;
       }
     },
+    Attribute: {
+      helper: {
+        isPersistent: function() {
+          return this.persistent == false ? false : true;
+        }
+      }
+    },
     Class: {
       isa: function(key, klass, def) {
         var parts = def[key]
@@ -331,6 +338,7 @@ var Joose = {
         var js = ['var hasser =  function(klass) {'];
         var jsc = klass.meta.inits;
         for(var i in part) {
+          part[i].isPersistent = Joose._.Attribute.helper.isPersistent;
           var fname = Joose._.firstUp(i);
           js.push('klass["get'+fname+'"] = function()    { return this["'+i+'"]; };');  
           js.push('klass["set'+fname+'"] = function(val) { this["'+i+'"] = val; return this; };');  
@@ -386,6 +394,18 @@ var Joose = {
       return {
         _name: name || { relative: '', absolute: '' },
         getName: function() { return this._name.absolute; },
+        classNameToClassObject: function (className) {
+            var parts  = className.split(".");
+            var object = Joose._.Module.base;
+            for(var i = 0, l = parts.length; i < l; ++i) {
+                var part = parts[i];
+                object   = object[part];
+                if(!object) {
+                    throw "Unable to find class "+className
+                }
+            }
+            return object
+        },
         isClass: type == 'Class',
         isModule: type == 'Module',
         isRole: type == 'Role',
@@ -458,6 +478,9 @@ var Joose = {
 		 klass.meta = current.meta;
 		 klass.meta.inits = { values: [], keys: [] };
 		 klass.meta.def = def;
+     klass.meta.getAttributes = function() { 
+       return this.def.has;
+     }
 		 klass.meta['class'] = klass;
 		 klass.meta['c'] = klass;
      Joose._.Class.addMeta(klass);
@@ -516,7 +539,7 @@ for(var i in old) {
 }
 
 joosetop.meta = Joose._.Meta(null, 'Module', joosetop);
-Joose.joose = { joosetop: joosetop };
+Joose.joose = { joosetop: joosetop, top: joosetop };
 joosetop.Class = Joose.Class;
 joosetop.Role = Joose.Role;
 joosetop.Module = Joose.Module;
@@ -524,3 +547,40 @@ joosetop.Module = Joose.Module;
 if (typeof exports !== 'undefined' ) {
   exports.joose = joosetop.Joose ;
 }
+
+
+//require('./diet-joose');
+
+/**
+* Joose.Singleton
+* Role for singleton classes.
+* Gives a getInstance class method to classes using this role.
+* The getInstance method will create a method on first invocation and return the same instance
+* upon every consecutive invocation.
+*/
+joosetop.Role("Joose.Singleton", {
+ before: {
+	  initialize: function () {
+			if(this.meta['class'].__instance) {
+				 throw new Error("The class "+this.meta.className()+" is a singleton. Please use the class method getInstance().")
+			}
+	  }
+ },
+ 
+ methods: {
+		singletonInitialize: function () {
+			 
+		}
+ },
+ 
+ classMethods: {
+	  getInstance: function () {
+			if(this.__instance) {
+				 return this.__instance;
+			}
+			this.__instance            = new this.meta['class']()
+			this.__instance.singletonInitialize.apply(this.__instance, arguments)
+			return this.__instance;
+	  }
+ }
+})

@@ -20,8 +20,10 @@ if (typeof(require) == 'undefined' && typeof(imports) == 'object') {
   }
 }
 
+require('./json2')
 require('./diet-joose');
 require('./joose.singleton')
+require('./joose.storage')
 
 
 
@@ -767,6 +769,33 @@ function SingleTon() {
 
 SingleTon()
 
+function Storage() {
+  Class('CStorage', {
+    does: [Joose.Storage],
+    has: {
+      meno: { is: "rw" }
+    },
+    methods: {
+      getMeno: function() {
+        return this.meno;
+      }
+    }
+  })
+  var json_str = '{"__CLASS__":"CStorage","meno":"Toll"}'
+  var nativ = JSON.parse(json_str);
+  Joose.Storage.Unpacker.patchJSON();
+  var obj = JSON.parse(json_str);
+  assertEQ('Storage:cname', 'CStorage', obj.meta.getName());
+  assertEQ('Storage:attribute', 'Toll', obj.meno);
+  assertEQ('Storage:getName', 'Toll', obj.getMeno());
+  var obj_json = obj.toJSON();
+  for(var i in nativ) {
+    assertEQ('Storage:JSON', nativ[i], obj_json[i])
+  }
+
+}
+Storage();
+
 function MetaIsa(isit, klazz) {
 	assertEQ('MetaIsa:true', klazz.meta.isa(isit), true); 
 	assertEQ('MetaIsa:false', klazz.meta.isa(Class('Vogel', {})), false); 
@@ -813,6 +842,25 @@ RolesShouldHaveClassMethods('roleClassMethod', Role('uu', {
     classMethod: function() { return 'roleClassMethod'; }
   }
 }))
+
+
+function classNameToClassObjectTest() {
+  Module('MclassNameToClassObjectTest', function() {
+  })
+  assert('Module:classNameToClassObjectTest', MclassNameToClassObjectTest.meta.classNameToClassObject);
+  assertEQ('Class:classNameToClassObjectTest', MclassNameToClassObjectTest.meta.classNameToClassObject('MclassNameToClassObjectTest'), MclassNameToClassObjectTest);
+  Role('RclassNameToClassObjectTest', {
+  })
+  assert('Role:classNameToClassObjectTest', RclassNameToClassObjectTest.meta.classNameToClassObject);
+  assertEQ('Class:classNameToClassObjectTest', RclassNameToClassObjectTest.meta.classNameToClassObject('RclassNameToClassObjectTest'), RclassNameToClassObjectTest);
+  Class('CclassNameToClassObjectTest', {
+  })
+  assert('Class:classNameToClassObjectTest', CclassNameToClassObjectTest.meta.classNameToClassObject);
+  assertEQ('Class:classNameToClassObjectTest', CclassNameToClassObjectTest.meta.classNameToClassObject('CclassNameToClassObjectTest'), CclassNameToClassObjectTest);
+}
+
+classNameToClassObjectTest();
+
 
 
 var start = new Date();
