@@ -416,8 +416,38 @@ function RoleClassDoesFailure(exp, roles, klass) {
     assertEQ('RoleClassDoesFailure', exp, e.message)
   }
 }
+//---------------------------------------------------------------
+var theClass = Class('ClassTest42', {
+  
+  classMethods: {
+    methods: function() { return "classMethods"; }
+  },
+  methods: {
+    methods: function() { return "methods"; }
+  }
+});
+var theParentRole = Role('RoleParentTest42', {
+  classMethods: {
+    parentClassMethod: function() { return "parentClassMethod"; }
+  },
+  methods: {
+    parentRoleMethod: function() { return "parentRoleMethod"; }
+  }
+});
 
-//debugger;
+var theRole = Role('RoleTest42', {
+	does: theParentRole,
+  classMethods: {
+    roleClassMethod: function() { return "roleClassMethod"; }
+  },
+  methods: {
+    roleMethod: function() { return "roleMethod"; }
+  }
+});
+theClass.apply(theRole);
+RoleClassDoes([theParentRole, theRole], theClass);
+//---------------------------------------------------------------
+
 RoleClassDoes([Role('RoleTest', {
   requires: 'methods',
   classMethods: {
@@ -435,7 +465,7 @@ RoleClassDoes([Role('RoleTest', {
     methods: function() { return "methods"; }
   }
 }))
-
+//---------------------------------------------------------------
 
 RoleClassDoesFailure('Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
   requires: 'Failure',
@@ -488,11 +518,7 @@ Class('xClassTest', {
   }
 }))
 
-
-
-RoleClassDoes([Role('RoleTest0', {
-  requires: 'method0',
-  does: Role('RoleTest1', {
+var parentRole = Role('RoleTest1', {
           requires: 'method1',
           classMethods: {
             classRoleTest1: function() { return "classRoleTest1"; }
@@ -500,14 +526,17 @@ RoleClassDoes([Role('RoleTest0', {
           methods: {
             instanceRoleTest1: function() { return "instanceRoleTest1"; }
           }
-        }),
+        });
+RoleClassDoes([Role('RoleTest0', {
+  requires: 'method0',
+  does: parentRole,
   classMethods: {
     classRoleTest0: function() { return "classRoleTest0"; }
   },
   methods: {
     instanceRoleTest0: function() { return "instanceRoleTest0"; }
   }
-})], Class('xClassTest', {
+}), parentRole], Class('xClassTest', {
   does: [RoleTest0],
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -518,7 +547,7 @@ RoleClassDoes([Role('RoleTest0', {
     method1: function() { return "method1"; }
   }
 }))
-
+//--------------------------------------------------------------------
 
 function IsaTest(klazz) {
   assertEQ('TestBase.methodtestBase', TestBase.methodtestBase(), 'classMethodtestBase');
@@ -560,6 +589,7 @@ function IsaTest(klazz) {
 
   assertEQ('secondchild.getX', secondchild.getX(), 4711)
   assertEQ('secondchild.getY', secondchild.getY(), 4712)
+  assertEQ('secondchild.getZ', secondchild.getZ(), "methodtestBase");
 
   assertEQ('secondchild.track.length', secondchild.track.length, 3)
   assertEQ('secondchild.track.0', secondchild.track[0], 'testBase')
@@ -579,6 +609,10 @@ IsaTest(Class('SecondChild', {
                   y: {
                         is: "rw",
                         init: function() { return 4712 }
+                     },
+                  z: {
+                        is: "rw",
+                        init: function() { return this.methodtestBase(); }
                      }
                 },
                 classMethods: {
@@ -642,6 +676,10 @@ IsaTest(Class('SecondChild', {
                   y: {
                         is: "rw",
                         init: function() { return 4712 }
+                     },
+                  z: {
+                        is: "rw",
+                        init: function() { return this.methodtestBase(); }
                      }
                 },
                 classMethods: {
@@ -786,38 +824,12 @@ function SingleTon() {
 
 SingleTon()
 
-function Storage() {
-  Class('CStorage', {
-    does: [Joose.Storage],
-    has: {
-      meno: { is: "rw" }
-    },
-    methods: {
-      getMeno: function() {
-        return this.meno;
-      }
-    }
-  })
-  var json_str = '{"__CLASS__":"CStorage","meno":"Toll"}'
-  var nativ = JSON.parse(json_str);
-  Joose.Storage.Unpacker.patchJSON();
-  var obj = JSON.parse(json_str);
-  assertEQ('Storage:cname', 'CStorage', obj.meta.getName());
-  assertEQ('Storage:attribute', 'Toll', obj.meno);
-  assertEQ('Storage:getName', 'Toll', obj.getMeno());
-  var obj_json = obj.toJSON();
-  for(var i in nativ) {
-    assertEQ('Storage:JSON', nativ[i], obj_json[i])
-  }
 
-}
-Storage();
 
 function MetaIsa(isit, klazz) {
 	assertEQ('MetaIsa:true', klazz.meta.isa(isit), true); 
 	assertEQ('MetaIsa:false', klazz.meta.isa(Class('Vogel', {})), false); 
 }
-
 
 MetaIsa(Class('Wurm', { }), Class('Gras', { isa: Class('Erde', { isa: Wurm }) }))
 
@@ -860,6 +872,67 @@ RolesShouldHaveClassMethods('roleClassMethod', Role('uu', {
   }
 }))
 
+//----------- tests the inheritance from roles --------------------
+function ClassDoesRoles(name, klass) {
+  var instance = new klass()
+	assertEQ("ClassDoesRoles", instance.getTheName(), name);
+}
+
+var roleA = Role('roleA', {
+    methods: {
+      getTheName: function() { return "roleA"; }
+    }
+  });
+  
+var roleAA = Role('roleAA', {
+  does: roleA,
+  methods: {
+    getTheName: function() { return "roleAA"; }
+  }
+});
+
+var roleB = Role('roleB', {
+  methods: {
+    getTheName: function() { return "roleB"; }
+  }
+});
+  
+var roleBB = Role('roleBB', {
+  does: roleB,
+  methods: {
+    getTheName: function() { return "roleBB"; }
+  }
+});
+
+var klassA = Class('classA', {
+  does: [roleA]
+});
+ClassDoesRoles("roleA", klassA);
+
+var klassAA = Class('classAA', {
+  does: [roleAA]
+});
+ClassDoesRoles("roleAA", klassAA);
+
+var klassB = Class('classB', {
+  does: [roleA, roleB]
+});
+ClassDoesRoles("roleA", klassB);
+
+var klassB2 = Class('classB2', {
+  does: [roleAA, roleB]
+});
+ClassDoesRoles("roleAA", klassB2);
+
+var klassNeu = Class('classNeu', {
+  does: [roleAA, roleB],
+  methods: {
+  	getTheName: function() { return "classNeu"; }
+  }
+});
+ClassDoesRoles("classNeu", klassNeu);
+
+// -------------------------------------
 
 function classNameToClassObjectTest() {
   Module('MclassNameToClassObjectTest', function() {
@@ -877,8 +950,6 @@ function classNameToClassObjectTest() {
 }
 
 classNameToClassObjectTest();
-
-
 
 var start = new Date();
 for(var c = 60000; c < 5000; ++c) {

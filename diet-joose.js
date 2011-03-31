@@ -1,5 +1,3 @@
-//var util = require('util');
-
 if (typeof window === 'undefined') {
   if (typeof exports === 'undefined' ) {
     var joosetop = this;
@@ -9,7 +7,6 @@ if (typeof window === 'undefined') {
 } else {
   var joosetop = window;
 }
-
 
 var Joose = {
   A: {
@@ -95,10 +92,10 @@ var Joose = {
         var a = [];
         Joose.A.each(array, function (t) {
             if(t !== removeEle) {
-                a.push(t)
+                a.push(t);
             }
-        })
-        return a
+        });
+        return a;
     }
   },
   S: {
@@ -106,12 +103,11 @@ var Joose = {
     uppercaseFirst: function (string) { 
         return string.charAt(0).toUpperCase() + string.slice(1);
     },
+    
     isString: function (thing) { 
-        if(typeof thing == "string") {
-            return true
-        }
-        return false
+        return (typeof thing == "string");
     },
+    
     compare: function (a, b) {
       if (a == b) {
         return 0;
@@ -126,7 +122,7 @@ var Joose = {
   // Static helpers for objects
     each: function (object, func) {
         for(var i in object) {
-            func(object[i], i)
+            func(object[i], i);
         }
     },
     merge: function(target, merger) {
@@ -143,24 +139,24 @@ var Joose = {
     eachSafe: function (object, func) {
         for(var i in object) {
             if(object.hasOwnProperty(i)) {
-                func(object[i], i)
+                func(object[i], i);
             }
         }
     },
     extend: function (target, newObject) {
         for(var i in newObject) {
-            var thing = newObject[i]
-            target[i] = thing
+            var thing = newObject[i];
+            target[i] = thing;
         }
     },
     values: function (object) {
       var ret = [];
-      Joose.O.each(object, function(o) { ret.push(o); })
+      Joose.O.each(object, function(o) { ret.push(o); });
       return ret;
     },
     keys: function (object) {
       var ret = [];
-      Joose.O.each(object, function(o, k) { ret.push(k); })
+      Joose.O.each(object, function(o, k) { ret.push(k); });
       return ret;
     }
   },
@@ -193,58 +189,75 @@ var Joose = {
     },
     Class: {
       isa: function(key, klass, def) {
-        var parts = def[key]
+        var parts = def[key];
         if (!parts) { return; }
         if (!Joose._.isArray(parts)) { def[key] = parts = [parts]; }
         var first = true;
         for(var i = parts.length - 1; i >= 0; --i) {
           var parent = parts[i];
-          Joose._.Class.helper.methods('classMethods', klass, parent);
+          Joose._.Class.helper.methods(klass, parent);
           if (first) {
               var func = function() {};
               func.prototype = parent.prototype;
               func.prototype.TEST = klass.meta.getName;
-//console.log('FIRST', klass.meta.getName(), parent.meta.getName(), Joose.O.keys(parent.prototype));
               klass.prototype = new func();
           } else {
-//console.log('NEXT', klass.meta.getName(), parent.meta.getName(), Joose.O.keys(parent.prototype));
-            Joose._.Class.helper.methods('methods', klass.prototype, parent.prototype);
+            Joose._.Class.helper.methods(klass.prototype, parent.prototype);
           }
           first = false;
         }
       },
+      
       does: function(key, klass, def) {
-        var parts = def[key]
+      	/*
+      	 * "If the implementing class already has a method of the same name, it will not be overidden." (taken from the joose-HP)
+      	 */
+        var parts = def[key];
         if (!parts) { return; }
         if (!Joose._.isArray(parts)) { def[key] = parts = [parts]; }
-        // OPT possible to do this in one step
-        var roles_to_apply = function(does, result, i) {
-          result.push.apply(result, does);
-          for(i = does.length-1; i>= 0; --i) {
-            does[i].meta.def.does.length && roles_to_apply(does[i].meta.def.does, result);	
+        
+        var applyRoleToClass = function(klass, role){
+        	for(var i in Joose._.roleParser) {
+              key = Joose._.roleParser[i];
+              var notOverride = key == 'classMethods' || key == 'methods';
+              Joose._.Class[key](key, klass, role.meta.def, notOverride);
+            }
+        };
+        
+        var roles = [];
+        var applyDoes = function( theDoesRoles ){
+        	/*
+        	 * we iterate through the roles and apply them one by one. 
+        	 * so that a role which is applied later cannot override another function
+        	 */
+        	for(var i = 0 ; i< theDoesRoles.length; i++) {
+        		var role = theDoesRoles[i];
+        		roles.push(role);
+        		applyRoleToClass(klass, role);
+            role.meta.def.does.length && applyDoes(role.meta.def.does);  
           }
-          return result;
-        }
-        roles = roles_to_apply(parts, [])
-
-        for(var p = 0, l = roles.length; p < l; ++p) {
-          var role = roles[p]; 
-          for (var i in role.meta.def.requires) {
-            var method = role.meta.def.requires[i]
+        };
+        applyDoes(parts);
+        
+        // check if all requires are fulfilled
+        for(var p = 0; p < roles.length; p++) {
+        	var role = roles[p]; 
+        	 for (var i in role.meta.def.requires) {
+            var method = role.meta.def.requires[i];
             if (!klass.prototype[method]) {
               throw new Error("Role["+role.meta.getName()+"] requires method ["+method+"] in class ["+klass.meta.getName()+"]");
             }
           }
-          for(var i in Joose._.roleParser) {
-            key = Joose._.roleParser[i];
-            Joose._.Class[key](key, klass, role.meta.def, 'classMethods' == key)
-          }
         }
       },
+      
       helper: {
+      	/*
+      	 * Tina @ Meno: I don't get why this function has to be so complicated? 
+      	 * 
         methodLoop: function(notOverride) {
-          /* this need for rhino where funny things are enumerated */
-          for(var i in (function() { })) { 
+          /  * this need for rhino where funny things are enumerated *  /
+          for(var i in (function() { })) {
             this.methodLoop = function(notOverride) {
                                          return ({
                                             "true":  (function(emptyFunction) {
@@ -254,7 +267,7 @@ var Joose = {
                                                         return function(klass, part) { for(var i in part) { !(i in emptyFunction) && (klass[i] = part[i]); } } 
                                                      })(function() { })
                                          })[!!notOverride+''];
-                              }
+                              };
              return this.methodLoop(notOverride); 
           }
           this.methodLoop = function(notOverride) {
@@ -262,57 +275,71 @@ var Joose = {
                                             "true":  function(klass, part) { for(var i in part) { !klass[i] && (klass[i] = part[i]); } },
                                             "false": function(klass, part) { for(var i in part) { klass[i] = part[i]; } }
                                          })[!!notOverride+''];
-                            }
-          return this.methodLoop(notOverride); 
+                            };
+          return this.methodLoop(notOverride);
+        }, */
+        
+        methodLoop: function(notOverride, klass, part) {
+        	var setParts = function(klass, part) { for(var i in part) { klass[i] = part[i]; } };
+        	if(notOverride){
+        		setParts = function(klass, part) { for(var i in part) { !klass[i] && (klass[i] = part[i]); } };
+        	}
+        	setParts(klass, part);
         },
-        methods: function(key, klass, def, notOverride) {
+        
+        methods: function(klass, def, notOverride) {
           var part = def;
-          if (!part) { return }
+          if (!part) { return; }
           var meta = part['meta']; 
           if (meta) {
             delete part.meta;
-            this.methodLoop(notOverride)(klass, part);
+            //this.methodLoop(notOverride)(klass, part);
+            this.methodLoop(notOverride, klass, part);
             part.meta = meta;
           } else {
-            this.methodLoop(notOverride)(klass, part);
+            //this.methodLoop(notOverride)(klass, part);
+            this.methodLoop(notOverride, klass, part);
           }
         },
+        
         around: function (func, orig) {
-            return function aroundWrapper () {
-                var bound = [(function(me) { return function () { return orig.apply(me, arguments); } })(this)];
-                return  func.apply(this, bound.push.apply(bound, arguments));
-            }            
+          return function aroundWrapper () {
+            var bound = [(function(me) { return function () { return orig.apply(me, arguments); } })(this)];
+            return  func.apply(this, bound.push.apply(bound, arguments));  
+          };
         },
+        
         before: function (func, orig) {
-            return function beforeWrapper () {
-                func.apply(this, arguments)
-					 if (orig) { 	
-						 return orig.apply(this, arguments);
-					 } 
-					 return null;
-            }        
+          return function beforeWrapper () {
+            func.apply(this, arguments);
+					  if (orig) { 	
+						  return orig.apply(this, arguments);
+					  } 
+					  return null;
+          };
         },
+        
         after: function (func, orig) {
-            return function afterWrapper () {
-                var ret = orig.apply(this, arguments);
-                func.apply(this, arguments);
-                return ret;
-            }
+          return function afterWrapper () {
+            var ret = orig.apply(this, arguments);
+            func.apply(this, arguments);
+            return ret;
+          };
         },
         
         override: function (func, orig) {
-            return function overrideWrapper () {
-                var bound = (function(me) { return function () { return orig.apply(me, arguments); } })(this);
-                var before  = this.SUPER;
-                this.SUPER  = bound;
-                var ret     = func.apply(this, arguments);
-                this.SUPER  = before;
-                return ret
-            }            
+          return function overrideWrapper () {
+            var bound = (function(me) { return function () { return orig.apply(me, arguments); } })(this);
+            var before  = this.SUPER;
+            this.SUPER  = bound;
+            var ret     = func.apply(this, arguments);
+            this.SUPER  = before;
+            return ret;
+          };
         },
         aop: function(key, klass, def, name) {
           var part = def[key];
-          if (!part) { return }
+          if (!part) { return; }
           for(var i in part) {
             klass.prototype[i] = Joose._.Class.helper[name](part[i], klass.prototype[i]);
           }
@@ -325,30 +352,35 @@ var Joose = {
           return obj;
         }
       },
+      
       classMethods: function(key, klass, def, notOverride) {
-        Joose._.Class.helper.methods(key, klass, def[key], notOverride);
+        Joose._.Class.helper.methods(klass, def[key], notOverride);
       },
-      methods: function(key, klass, def) {
-        //klass.prototype = klass.prototype || { lurks: 4711 };
-        Joose._.Class.helper.methods(key, klass.prototype, def[key]);
+      
+      methods: function(key, klass, def, notOverride) {
+        Joose._.Class.helper.methods(klass.prototype, def[key], notOverride);
       },
+      
       has: function(key, klass, def) {
         var part = def[key];
-        if (!part) { return }
+        if (!part) { return; }
         var js = ['var hasser =  function(klass) {'];
         var jsc = klass.meta.inits;
         for(var i in part) {
+        	if(!part[i]){
+        		continue;
+        	}
           part[i].isPersistent = Joose._.Attribute.helper.isPersistent;
           var fname = Joose._.firstUp(i);
           js.push('klass["get'+fname+'"] = function()    { return this["'+i+'"]; };');  
-          js.push('klass["set'+fname+'"] = function(val) { this["'+i+'"] = val; return this; };');  
+          js.push('klass["set'+fname+'"] = function(val) { this["'+i+'"] = val; return this; };');
           var init = part[i].init;
           if (init) {
-            jsc.keys.push(i) 
-            jsc.values.push(init)
+            jsc.keys.push(i);
+            jsc.values.push(init);
           }
         }
-        js.push('}')
+        js.push('}');
         eval(js.join('')); // OPT could be also a colsure array but this will be slower
         hasser(klass.prototype);
       },
@@ -369,10 +401,18 @@ var Joose = {
             meta: { 
 							className: function() { return this._name.absolute; },
 		 					isa: function(klazz, i, ret) {
+		 						
+		 						// we also have to try if this current class and the klazz are identical
+		 						isClassname = new RegExp(this.className()+"$");
+		 						if(isClassname.exec(klazz.toString())){
+		 							return true;
+		 						} 
+		 						
 								if (!this.def.isa) {
 									return false;
 								}
 								ret = false;
+								
 								for(i = this.def.isa.length-1; i >= 0 && !ret; --i) {
 									if (this.def.isa[i] === klazz) {
 										ret = true;
@@ -380,6 +420,7 @@ var Joose = {
 										ret = this.def.isa[i].meta.isa(klazz);	
 									}
 								} 
+								
 								return ret;
 							}
 						}
@@ -401,10 +442,10 @@ var Joose = {
                 var part = parts[i];
                 object   = object[part];
                 if(!object) {
-                    throw "Unable to find class "+className
+                    throw "Unable to find class "+className;
                 }
             }
-            return object
+            return object;
         },
         isClass: type == 'Class',
         isModule: type == 'Module',
@@ -447,7 +488,7 @@ var Joose = {
 		  if (rethrow) {
 				throw(rethrow);
 		  }
-      })()
+      })();
     }
     return current;
   },
@@ -462,7 +503,8 @@ var Joose = {
 		 if (!def.does) { def.does = []; }
      else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
 		 current.meta.def = def;
-     Joose._.Class.helper.methods('', current, current.meta.def['classMethods']);
+     Joose._.Class.helper.methods(current, current.meta.def['classMethods']);
+     
 	 }, 'Role');
   },
   Class: function(name, def) {
@@ -487,7 +529,7 @@ var Joose = {
 
 		 for(var i in Joose._.classParser) {
 			var key = Joose._.classParser[i];
-			Joose._.Class[key](key, klass, def)
+			Joose._.Class[key](key, klass, def);
 		 }
 		 var inits = function(params) {
 			if (this.toString === {}.toString) {
@@ -499,34 +541,68 @@ var Joose = {
 			for(var i in klass.meta.inits.keys) {
 			  var key = klass.meta.inits.keys[i];
 			  var value = klass.meta.inits.values[i];
-			  if (typeof(value) == 'function') {
-				 this[key] = value();
-			  } else {
-				 this[key] = value;
-			  }
+			    if (typeof(value) == 'function') {
+				    this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
+			    } else {
+				    this[key] = value;
+			    }
 			}
 			if (typeof(params) == 'object') { 
 			  for(var i in params) {
 				 var fname = 'set'+Joose._.firstUp(i);
 				 if (this[fname]) {
+				 	try{
 					this[fname](params[i]);
+				 	}catch(e){
+				 		//FIXME check if this try-catch-block can be removed
+				 	}
 				 } else if (!this[i]) {
 					this[i] = params[i];
 				 }
 			  }
 			}
-		 }
+		 };
+		 
 		 if (klass.prototype.initialize) {
 			klass.prototype.initialize = Joose._.Class.helper.before(inits, klass.prototype.initialize);
 		 } else {
 			klass.prototype.initialize = inits;
 		 }
      klass.meta.instantiate = Joose._.Class.helper.instantiate;
-//		 klass.prototype = klass.prototype || {}
   	 klass.prototype.meta = klass.meta;
-	//console.log(util.inspect(klass.meta._name));
 		 current.meta.nsparent[klass.meta._name.relative] = klass;
     }, 'Class').meta;
+         
+    klass.apply = function(roleToExtendFrom){
+    	
+    	  var roles_to_apply = function(theRoles, result, i) {
+          result.push.apply(result, theRoles);
+          for(i = theRoles.length-1; i>= 0; --i) {
+            theRoles[i].meta.def.does.length && roles_to_apply(theRoles[i].meta.def.does, result);  
+          }
+          return result;
+        }
+      roles = roles_to_apply([roleToExtendFrom], []);
+    	
+        for(var p = roles.length - 1; p >= 0; p--) {
+          var role = roles[p]; 
+	    	// the classmethods
+	    	for( i in role){
+	    		if(typeof role[i] == "function"){    		  
+	    		  klass[i] = role[i];
+	    		}
+	    	}
+	    	
+	    	//the methods
+	      for( i in role.meta.def.methods){
+	        if(typeof role.meta.def.methods[i] == "function"){  
+	          klass.prototype[i] = role.meta.def.methods[i];
+	        }
+	      } 
+    	}
+          
+    };
+    
     return klass;
   }
 };
