@@ -236,16 +236,33 @@ function SetGetTest(names, klass) {
     var name = names[i]
     for(var j in name) {
       var instance = new klass();
-      assertEQ('SetGetTest:SetTest:'+j+':', instance['set'+j](name[j]), instance)
-      assertEQ('SetGetTest:GetTest:'+j+':', instance['get'+j](), name[j])
+      assertEQ('SetGetTest:SetTest:'+j+':', instance['set'+j](name[j].set), instance)
+      assertEQ('SetGetTest:GetTest:'+j+':', instance['get'+j](), name[j].get)
     }
   }
 }
   
-SetGetTest([{'Test': '4711'}], Class('TestClass', {
+SetGetTest([{'Test': {set: '4711', get: '4711'}}], Class('TestClass', {
   has: {
     test: {
       is: "rw"
+    }
+  }
+}));
+
+SetGetTest([{'Test': {set: '4713', get: '47131'}}], Class('xTestClass', {
+  has: {
+    test: {
+      is: "rw"
+    }
+  },
+  methods: {
+    setTest: function(a) {
+      this.o = a + 1;
+      return this;
+    },
+    getTest: function() {
+      return this.o;
     }
   }
 }));

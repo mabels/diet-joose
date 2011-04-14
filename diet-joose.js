@@ -165,8 +165,8 @@ var Joose = {
     }
   },
   _: {
-    classParser: ['isa', 'classMethods', 'methods', 'has', 'does', 'before', 'after', 'around', 'override'],
-    roleParser: ['classMethods', 'methods', 'has', 'before', 'after', 'around', 'override'],
+    classParser: ['isa', 'classMethods', 'has', 'methods', 'does', 'before', 'after', 'around', 'override'],
+    roleParser: ['classMethods', 'has', 'methods', 'before', 'after', 'around', 'override'],
     nameId: ~~(Math.random()*0xdeadbeaf),
     anonymousName: function () {
       return 'Joose'+Joose._.nameId++;
