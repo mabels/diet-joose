@@ -252,11 +252,8 @@ var Joose = {
       },
       
       helper: {
-      	/*
-      	 * Tina @ Meno: I don't get why this function has to be so complicated? 
-      	 * 
         methodLoop: function(notOverride) {
-          /  * this need for rhino where funny things are enumerated *  /
+          /* this need for rhino where funny things are enumerated */
           for(var i in (function() { })) {
             this.methodLoop = function(notOverride) {
                                          return ({
@@ -277,14 +274,6 @@ var Joose = {
                                          })[!!notOverride+''];
                             };
           return this.methodLoop(notOverride);
-        }, */
-        
-        methodLoop: function(notOverride, klass, part) {
-        	var setParts = function(klass, part) { for(var i in part) { klass[i] = part[i]; } };
-        	if(notOverride){
-        		setParts = function(klass, part) { for(var i in part) { !klass[i] && (klass[i] = part[i]); } };
-        	}
-        	setParts(klass, part);
         },
         
         methods: function(klass, def, notOverride) {
@@ -293,12 +282,10 @@ var Joose = {
           var meta = part['meta']; 
           if (meta) {
             delete part.meta;
-            //this.methodLoop(notOverride)(klass, part);
-            this.methodLoop(notOverride, klass, part);
+            this.methodLoop(notOverride)(klass, part);
             part.meta = meta;
           } else {
-            //this.methodLoop(notOverride)(klass, part);
-            this.methodLoop(notOverride, klass, part);
+            this.methodLoop(notOverride)(klass, part);
           }
         },
         
