@@ -25,7 +25,7 @@ require('./diet-joose');
 require('./joose.singleton')
 require('./joose.storage')
 
-
+var missedAsserts = 0;
 
 function assert(title, c1) {
   if (c1) {
@@ -56,6 +56,7 @@ if (typeof $ != 'undefined') {
 function assertEQ(title, c1, c2) {
   if (c1 != c2) {
     console.error('ERROR on:'+title+":"+c1+"!="+c2);
+    missedAsserts++;
   } else {
     console.log('OK:'+title)
   }
@@ -546,7 +547,35 @@ RoleClassDoes([Role('RoleTest0', {
     method0: function() { return "method0"; },
     method1: function() { return "method1"; }
   }
-}))
+}));
+
+(function() {
+  var RoleToApply = Role('RoleToApply', {
+    classMethods: {
+      rcm: function() { return "rcm"; },
+      cm: function() { return "cm-from-role"; }
+    },
+    methods: {
+      rm: function() { return "rm"; },
+      m: function() { return "m-from-role"; }
+    }
+  });
+  var clazzToApplyRoleTo = Class('ClazzToApplyRoleTo', {
+    classMethods: {
+      cm: function() { return "cm"; }
+    },
+    methods: {
+      m: function() { return "m"; }
+    }
+  });
+  RoleToApply.meta.apply(clazzToApplyRoleTo);
+  var inst = new clazzToApplyRoleTo();
+  assertEQ('ClazzToApplyRoleTo:cm', clazzToApplyRoleTo.cm(), 'cm');
+  assertEQ('ClazzToApplyRoleTo:rcm', clazzToApplyRoleTo.rcm(), 'rcm');
+  assertEQ('ClazzToApplyRoleTo:m', inst.m(), 'm');
+  assertEQ('ClazzToApplyRoleTo:rm', inst.rm(), 'rm');
+}());
+
 //--------------------------------------------------------------------
 
 function IsaTest(klazz) {
@@ -1028,5 +1057,4 @@ for(var c = 60000; c < 5000; ++c) {
 }
 var end = new Date();
 console.log("15000 Klasses in msec:"+(end-start));
-
-
+missedAsserts > 0 && console.log('\n\t**** There where ' + missedAsserts + ' missed asserts ****\n')

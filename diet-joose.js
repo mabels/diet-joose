@@ -491,7 +491,8 @@ var Joose = {
      else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
 		 current.meta.def = def;
      Joose._.Class.helper.methods(current, current.meta.def['classMethods']);
-     
+     // Note: Required by mirapodo
+     current.meta.apply = function(clazz) { Joose._.Class['does']('does', clazz, {'does': current}); };
 	 }, 'Role');
   },
   Class: function(name, def) {
@@ -560,34 +561,31 @@ var Joose = {
 		 current.meta.nsparent[klass.meta._name.relative] = klass;
     }, 'Class').meta;
          
-    klass.apply = function(roleToExtendFrom){
-    	
-    	  var roles_to_apply = function(theRoles, result, i) {
-          result.push.apply(result, theRoles);
-          for(i = theRoles.length-1; i>= 0; --i) {
-            theRoles[i].meta.def.does.length && roles_to_apply(theRoles[i].meta.def.does, result);  
-          }
-          return result;
+    klass.apply = function(roleToExtendFrom) {
+      var roles_to_apply = function(theRoles, result, i) {
+        result.push.apply(result, theRoles);
+        for(i = theRoles.length-1; i>= 0; --i) {
+          theRoles[i].meta.def.does.length && roles_to_apply(theRoles[i].meta.def.does, result);  
         }
+        return result;
+      };
       roles = roles_to_apply([roleToExtendFrom], []);
-    	
-        for(var p = roles.length - 1; p >= 0; p--) {
-          var role = roles[p]; 
-	    	// the classmethods
-	    	for( i in role){
-	    		if(typeof role[i] == "function"){    		  
-	    		  klass[i] = role[i];
-	    		}
-	    	}
-	    	
-	    	//the methods
-	      for( i in role.meta.def.methods){
-	        if(typeof role.meta.def.methods[i] == "function"){  
-	          klass.prototype[i] = role.meta.def.methods[i];
-	        }
-	      } 
-    	}
-          
+      
+      for(var p = roles.length - 1; p >= 0; p--) {
+        var role = roles[p]; 
+        // the classmethods
+        for( i in role){
+          if(typeof role[i] == "function"){    		  
+            klass[i] = role[i];
+          }
+        }
+        //the methods
+        for( i in role.meta.def.methods){
+          if(typeof role.meta.def.methods[i] == "function"){  
+            klass.prototype[i] = role.meta.def.methods[i];
+          }
+        } 
+      }
     };
     
     return klass;
