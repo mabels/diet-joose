@@ -610,6 +610,7 @@ if (typeof exports !== 'undefined' ) {
 }
 
 
+
 //require('./diet-joose');
 
 /**
@@ -619,29 +620,31 @@ if (typeof exports !== 'undefined' ) {
 * The getInstance method will create a method on first invocation and return the same instance
 * upon every consecutive invocation.
 */
-joosetop.Role("Joose.Singleton", {
+Role("Joose.Singleton", {
  before: {
-	  initialize: function () {
-			if(this.meta['class'].__instance) {
-				 throw new Error("The class "+this.meta.className()+" is a singleton. Please use the class method getInstance().")
-			}
-	  }
+    initialize: function () {
+      if(this.meta['class'].__instance) {
+         throw new Error("The class "+this.meta.className()+" is a singleton. Please use the class method getInstance().")
+      }
+    }
  },
  
  methods: {
-		singletonInitialize: function () {
-			 
-		}
+    singletonInitialize: function () {
+       
+    }
  },
  
  classMethods: {
-	  getInstance: function () {
-			if(this.__instance) {
-				 return this.__instance;
-			}
-			this.__instance            = new this.meta['class']()
-			this.__instance.singletonInitialize.apply(this.__instance, arguments)
-			return this.__instance;
-	  }
+    getInstance: function () {
+      var registry = (Joose.Singleton.registry = (Joose.Singleton.registry || {}))
+      var name = this.meta.getName();
+      if (registry[name]) {
+         return registry[name];
+      }
+      registry[name] = new this.meta['class']()
+      registry[name].singletonInitialize.apply(registry[name], arguments)
+      return registry[name];
+    }
  }
 })

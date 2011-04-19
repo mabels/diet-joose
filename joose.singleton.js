@@ -24,12 +24,14 @@ Role("Joose.Singleton", {
  
  classMethods: {
 	  getInstance: function () {
-			if(this.__instance) {
-				 return this.__instance;
+	    var registry = (Joose.Singleton.registry = (Joose.Singleton.registry || {}))
+	    var name = this.meta.getName();
+      if (registry[name]) {
+				 return registry[name];
 			}
-			this.__instance            = new this.meta['class']()
-			this.__instance.singletonInitialize.apply(this.__instance, arguments)
-			return this.__instance;
+      registry[name] = new this.meta['class']()
+			registry[name].singletonInitialize.apply(registry[name], arguments)
+			return registry[name];
 	  }
  }
 })
