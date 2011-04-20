@@ -87,7 +87,6 @@ function ModuleTest() {
   assertEQ('Level12:relative', Level10.Level11.Level12.meta._name.relative, 'Level12');
   assertEQ('Level12:absolute', Level10.Level11.Level12.meta._name.absolute, 'Level10.Level11.Level12');
 
-
   Module('Level0.Level1.Level2.Level3', function(m) { 
     m.test = 'OK';
     Class('Class4', { });
@@ -211,7 +210,20 @@ MethodsTest([{'testBase': 'testBase'}], Class('TestClass', {
     testBase: function() { return 'testBase' }
   }
 }));
-  
+
+(function TestGetInstanceMethods(clazz) {
+  var methods = clazz.meta.getInstanceMethods();
+  assertEQ('TestGetInstanceMethods:size', methods.length, 2);
+}(Class('GetInstanceMethodsClass', {
+  classMethods: {
+    cm : function() { return 'cm'; }
+  },
+  methods: {
+    m1: function() { return 'm1'; },
+    m2: function() { return 'm2'; }
+  }
+})));
+
 function ClassMethodsTest(names, klass) {
   for(var i in names) {
     var name = names[i]

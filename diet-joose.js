@@ -383,40 +383,48 @@ var Joose = {
       override: function(key, klass, def) {
         Joose._.Class.helper.aop(key, klass, def, 'override'); 
       },
-		_: {
-		      toString: function() { return "Joose:"+this.meta._name.absolute; },
-            meta: { 
-							className: function() { return this._name.absolute; },
-		 					isa: function(klazz, i, ret) {
-		 						
-		 						// we also have to try if this current class and the klazz are identical
-		 						isClassname = new RegExp(this.className()+"$");
-		 						if(isClassname.exec(klazz.toString())){
-		 							return true;
-		 						} 
-		 						
-								if (!this.def.isa) {
-									return false;
-								}
-								ret = false;
-								
-								for(i = this.def.isa.length-1; i >= 0 && !ret; --i) {
-									if (this.def.isa[i] === klazz) {
-										ret = true;
-									} else {
-										ret = this.def.isa[i].meta.isa(klazz);	
-									}
-								} 
-								
-								return ret;
-							}
-						}
-		},
-		addMeta: function(klass) {
-			klass.toString = this._.toString;	
-			klass.meta.className = this._.meta.className;
-			klass.meta.isa = this._.meta.isa;
-		}
+      _: {
+        toString: function() { return "Joose:"+this.meta._name.absolute; },
+        meta: { 
+  				className: function() { return this._name.absolute; },
+  				isa: function(klazz, i, ret) {
+  					
+  					// we also have to try if this current class and the klazz are identical
+  					isClassname = new RegExp(this.className()+"$");
+  					if(isClassname.exec(klazz.toString())){
+  						return true;
+  					} 
+  					
+  					if (!this.def.isa) {
+  						return false;
+  					}
+  					ret = false;
+  					
+  					for(i = this.def.isa.length-1; i >= 0 && !ret; --i) {
+  						if (this.def.isa[i] === klazz) {
+  							ret = true;
+  						} else {
+  							ret = this.def.isa[i].meta.isa(klazz);	
+  						}
+  					} 
+  					
+  					return ret;
+  				},
+          getInstanceMethods: function() {
+            var a = [];
+            for (var i in this.def.methods) {
+              a.push(this.def.methods[i]);
+            }
+            return a;
+          }
+  			}
+      },
+  		addMeta: function(klass) {
+  			klass.toString = this._.toString;	
+  			klass.meta.className = this._.meta.className;
+  			klass.meta.isa = this._.meta.isa;
+  			klass.meta.getInstanceMethods = this._.meta.getInstanceMethods;
+  		}
     },
     Meta: function(name, type, module) {
       return {
