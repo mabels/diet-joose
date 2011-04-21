@@ -412,10 +412,13 @@ var Joose = {
   				},
           getInstanceMethods: function() {
             var a = [];
-            for (var i in this.def.methods) {
-              (function(name) {
-                a.push({getName: function() { return name; }});
-              })(i);
+            // FIXME: This is kindof a hack to have all class methods, inherited methods and role methods listed
+            for (var i in this['class'].prototype) {
+              if (typeof(this['class'].prototype[i]) === 'function' && i != 'initialize' && i != 'constructor') {
+                (function(name) {
+                  a.push({getName: function() { return name; }});
+                })(i);
+              }
             }
             return a;
           }
