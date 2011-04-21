@@ -413,7 +413,9 @@ var Joose = {
           getInstanceMethods: function() {
             var a = [];
             for (var i in this.def.methods) {
-              a.push(this.def.methods[i]);
+              (function(name) {
+                a.push({getName: function() { return name; }});
+              })(i);
             }
             return a;
           }

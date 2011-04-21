@@ -214,6 +214,11 @@ MethodsTest([{'testBase': 'testBase'}], Class('TestClass', {
 (function TestGetInstanceMethods(clazz) {
   var methods = clazz.meta.getInstanceMethods();
   assertEQ('TestGetInstanceMethods:size', methods.length, 2);
+  if (methods[0].getName() == 'm1') {
+    assertEQ('TestGetInstanceMethods:name:m2', methods[1].getName(), 'm2');
+  } else {
+    assertEQ('TestGetInstanceMethods:name:m2', methods[0].getName(), 'm2');
+  }
 }(Class('GetInstanceMethodsClass', {
   classMethods: {
     cm : function() { return 'cm'; }
