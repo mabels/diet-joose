@@ -184,6 +184,12 @@ var Joose = {
       helper: {
         isPersistent: function() {
           return this.persistent == false ? false : true;
+        },
+        getGetterCode: function(fname, name, props) {
+          return 'klass["get'+fname+'"] = function()    { return this["'+name+'"]; };';
+        },
+        getSetterCode: function(fname, name, props) {
+          return 'klass["set'+fname+'"] = function(val) { this["'+name+'"] = val; return this; };';
         }
       }
     },
@@ -359,8 +365,8 @@ var Joose = {
         	}
           part[i].isPersistent = Joose._.Attribute.helper.isPersistent;
           var fname = Joose._.firstUp(i);
-          js.push('klass["get'+fname+'"] = function()    { return this["'+i+'"]; };');  
-          js.push('klass["set'+fname+'"] = function(val) { this["'+i+'"] = val; return this; };');
+          js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
+          js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
           var init = part[i].init;
           if (init) {
             jsc.keys.push(i);
@@ -421,6 +427,9 @@ var Joose = {
               }
             }
             return a;
+          },
+          addMethod: function(name, fn) {
+            this['class'].prototype[name] = fn;
           }
   			}
       },
@@ -429,6 +438,7 @@ var Joose = {
   			klass.meta.className = this._.meta.className;
   			klass.meta.isa = this._.meta.isa;
   			klass.meta.getInstanceMethods = this._.meta.getInstanceMethods;
+  			klass.meta.addMethod = this._.meta.addMethod;
   		}
     },
     Meta: function(name, type, module) {
@@ -505,7 +515,7 @@ var Joose = {
 		 current.meta.def = def;
      Joose._.Class.helper.methods(current, current.meta.def['classMethods']);
      // Note: Required by mirapodo
-     current.meta.apply = function(clazz) { Joose._.Class['does']('does', clazz, {'does': current}); };
+     current.meta.apply = function(clazz) { Joose._.Class['does']('does', clazz.meta['class'], {'does': current}); };
 	 }, 'Role');
   },
   Class: function(name, def) {

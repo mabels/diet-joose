@@ -24,6 +24,7 @@ require('./json2')
 require('./diet-joose');
 require('./joose.singleton')
 require('./joose.storage')
+require('./joose.types')
 
 var missedAsserts = 0;
 
