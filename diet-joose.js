@@ -1,3 +1,8 @@
+/*
+ * Thx to all Commiters
+ */
+
+
 if (typeof window === 'undefined') {
   if (typeof exports === 'undefined' ) {
     var joosetop = this;
@@ -11,8 +16,8 @@ if (typeof window === 'undefined') {
 var Joose = {
   A: {
     each: function (array, func) {
-        for(var i = 0, len = array.length; i < len; i++) {
-            func(array[i], i)
+        for(var i = 0, len = array.length; i < len; ++i) {
+            func(array[i], i);
         }
     },
     map: function(array, func) {
@@ -76,14 +81,14 @@ var Joose = {
       }
     },
     concat: function (source, array) {
-        source.push.apply(source, array)
+        source.push.apply(source, array);
         return source
     },
     grep: function (array, func) {
         var a = [];
         Joose.A.each(array, function (t) {
             if(func(t)) {
-                a.push(t)
+                a.push(t);
             }
         })
         return a
@@ -183,7 +188,7 @@ var Joose = {
     Attribute: {
       helper: {
         isPersistent: function() {
-          return this.persistent == false ? false : true;
+          return !!this.persistent;
         },
         getGetterCode: function(fname, name, props) {
           return 'klass["get'+fname+'"] = function()    { return this["'+name+'"]; };';
@@ -236,7 +241,7 @@ var Joose = {
         	 * we iterate through the roles and apply them one by one. 
         	 * so that a role which is applied later cannot override another function
         	 */
-        	for(var i = 0 ; i< theDoesRoles.length; i++) {
+        	for(var i = 0, l = theDoesRoles.length; i < l; ++i) {
         		var role = theDoesRoles[i];
         		roles.push(role);
         		applyRoleToClass(klass, role);
@@ -246,7 +251,7 @@ var Joose = {
         applyDoes(parts);
         
         // check if all requires are fulfilled
-        for(var p = 0; p < roles.length; p++) {
+        for(var p = 0, l = roles.length; p < l; ++p) {
         	var role = roles[p]; 
         	 for (var i in role.meta.def.requires) {
             var method = role.meta.def.requires[i];
@@ -258,17 +263,14 @@ var Joose = {
       },
       
       helper: {
+        emptyFunction: function() {}, 
         methodLoop: function(notOverride) {
           /* this need for rhino where funny things are enumerated */
-          for(var i in (function() { })) {
+          for(var i in (Joose._.Class.helper.emptyFunction)) {
             this.methodLoop = function(notOverride) {
                                          return ({
-                                            "true":  (function(emptyFunction) {
-                                                        return function(klass, part) { for(var i in part) { !klass[i] && !(i in emptyFunction) && (klass[i] = part[i]); } } 
-                                                     })(function() { }),
-                                            "false": (function(emptyFunction) {   
-                                                        return function(klass, part) { for(var i in part) { !(i in emptyFunction) && (klass[i] = part[i]); } } 
-                                                     })(function() { })
+                                            "true":  function(klass, part) { for(var i in part) { !klass[i] && !(i in Joose._.Class.helper.emptyFunction) && (klass[i] = part[i]); } }, 
+                                            "false": function(klass, part) { for(var i in part) { !(i in Joose._.Class.helper.emptyFunction) && (klass[i] = part[i]); } } 
                                          })[!!notOverride+''];
                               };
              return this.methodLoop(notOverride); 
@@ -363,7 +365,7 @@ var Joose = {
         	if(!part[i]){
         		continue;
         	}
-          part[i].isPersistent = Joose._.Attribute.helper.isPersistent;
+          part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
           var fname = Joose._.firstUp(i);
           js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
           js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
@@ -488,16 +490,16 @@ var Joose = {
       (function() {
         var prev_current = Joose._.Module.current || Joose._.Module.base;
         Joose._.Module.current = current;
-		  var rethrow = false;
-		  try {
-			  fn(current); 
-		  } catch (e) {
-				rethrow = e;
-		  }
+		    var rethrow = false;
+		    try {
+			    fn(current); 
+		    } catch (e) {
+				  rethrow = e;
+		    }
         Joose._.Module.current = prev_current;
-		  if (rethrow) {
-				throw(rethrow);
-		  }
+		    if (rethrow) {
+				  throw(rethrow);
+		    }
       })();
     }
     return current;
@@ -514,7 +516,7 @@ var Joose = {
      else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
 		 current.meta.def = def;
      Joose._.Class.helper.methods(current, current.meta.def['classMethods']);
-     // Note: Required by mirapodo
+     // Note: Required by mirapodo 
      current.meta.apply = function(clazz) { Joose._.Class['does']('does', clazz.meta['class'], {'does': current}); };
 	 }, 'Role');
   },
@@ -562,11 +564,11 @@ var Joose = {
 			  for(var i in params) {
 				 var fname = 'set'+Joose._.firstUp(i);
 				 if (this[fname]) {
-				 	try{
+				 	//try{
 					this[fname](params[i]);
-				 	}catch(e){
+				 	//}catch(e){
 				 		//FIXME check if this try-catch-block can be removed
-				 	}
+				 	//}
 				 } else if (!this[i]) {
 					this[i] = params[i];
 				 }
@@ -594,7 +596,7 @@ var Joose = {
       };
       roles = roles_to_apply([roleToExtendFrom], []);
       
-      for(var p = roles.length - 1; p >= 0; p--) {
+      for(var p = roles.length - 1; p >= 0; --p) {
         var role = roles[p]; 
         // the classmethods
         for( i in role){

@@ -999,7 +999,7 @@ function classNameToClassObjectTest() {
 classNameToClassObjectTest();
 
 var start = new Date();
-for(var c = 60000; c < 5000; ++c) {
+for(var c = 1; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
     has: {
       x: {
