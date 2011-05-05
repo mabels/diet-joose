@@ -161,7 +161,7 @@ var Joose = {
     }
   },
   _: {
-    classParser: ['isa', 'classMethods', 'has', 'methods', 'does', 'before', 'after', 'around', 'override'],
+    classParser: ['meta', 'isa', 'classMethods', 'has', 'methods', 'does', 'before', 'after', 'around', 'override'],
     roleParser: ['classMethods', 'has', 'methods', 'before', 'after', 'around', 'override'],
     nameId: ~~(Math.random()*0xdeadbeaf),
     anonymousName: function () {
@@ -194,6 +194,18 @@ var Joose = {
       }
     },
     Class: {
+      meta: function(key, klass, def) {
+        if (def['meta']) {
+          var meta = def['meta'];
+          for (var p in def) {
+            var builder = meta.prototype['handleProp' + p];
+            if (builder) {
+              builder.call(klass.meta, def[p]);
+            }
+          }
+        }
+      },
+      
       isa: function(key, klass, def) {
         var parts = def[key];
         if (!parts) { return; }
@@ -430,6 +442,9 @@ var Joose = {
           },
           addMethod: function(name, fn) {
             this['class'].prototype[name] = fn;
+          },
+          addClassMethod: function(name, fn) {
+            this['class'][name] = fn;
           }
   			}
       },
@@ -439,6 +454,7 @@ var Joose = {
   			klass.meta.isa = this._.meta.isa;
   			klass.meta.getInstanceMethods = this._.meta.getInstanceMethods;
   			klass.meta.addMethod = this._.meta.addMethod;
+  			klass.meta.addClassMethod = this._.meta.addClassMethod;
   		},
   		addClassMeta: function() {
   		  return {
