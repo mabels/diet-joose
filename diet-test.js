@@ -998,6 +998,13 @@ function classNameToClassObjectTest() {
 
 classNameToClassObjectTest();
 
+(function classNameToClassObjectTest2() {
+  Module('MclassNameToClassObjectTest2', function(m) {
+    Class('Class', {});
+  });
+  assertEQ('Class:classNameToClassObjectTest2', Joose.Class.meta.classNameToClassObject('MclassNameToClassObjectTest2.Class'), MclassNameToClassObjectTest2.Class);
+})()
+
 var start = new Date();
 for(var c = 60000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {

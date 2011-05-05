@@ -439,6 +439,11 @@ var Joose = {
   			klass.meta.isa = this._.meta.isa;
   			klass.meta.getInstanceMethods = this._.meta.getInstanceMethods;
   			klass.meta.addMethod = this._.meta.addMethod;
+  		},
+  		addClassMeta: function() {
+  		  return {
+  		    classNameToClassObject: Joose._.Meta().classNameToClassObject
+  		  };
   		}
     },
     Meta: function(name, type, module) {
@@ -625,6 +630,7 @@ for(var i in old) {
 joosetop.meta = Joose._.Meta(null, 'Module', joosetop);
 Joose.joose = { joosetop: joosetop, top: joosetop };
 joosetop.Class = Joose.Class;
+joosetop.Class.meta = Joose._.Class.addClassMeta();
 joosetop.Role = Joose.Role;
 joosetop.Module = Joose.Module;
 
