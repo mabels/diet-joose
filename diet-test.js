@@ -998,6 +998,40 @@ function classNameToClassObjectTest() {
 
 classNameToClassObjectTest();
 
+(function classNameToClassObjectTest2() {
+  Module('MclassNameToClassObjectTest2', function(m) {
+    Class('Class', {});
+  });
+  assertEQ('Class:classNameToClassObjectTest2', Joose.Class.meta.classNameToClassObject('MclassNameToClassObjectTest2.Class'), MclassNameToClassObjectTest2.Class);
+})();
+
+(function classWithMetaClassExtension() {
+  Class('MetaClass', {
+    methods: {
+      handlePropvalidations: function (map) {
+        this.addClassMethod("_getValidations", function () {
+          return map;
+        });
+      }
+    }
+  })
+  Class('ClassWithMetaClass', {
+    meta: MetaClass,
+    validations: {
+      bla: 'bla',
+      blub: 'blub'
+    },
+    classMethods: {
+      getValidations: function() {
+        return this._getValidations();
+      }
+    }
+  })
+  var validations = ClassWithMetaClass.getValidations()
+  assertEQ('Class:classWithMetaClassExtension:validations:bla', validations['bla'], 'bla')
+  assertEQ('Class:classWithMetaClassExtension:validations:bla', validations['blub'], 'blub')
+})();
+
 var start = new Date();
 for(var c = 1; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
