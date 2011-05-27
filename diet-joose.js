@@ -11,9 +11,9 @@ if (typeof window === 'undefined') {
 var Joose = {
   A: {
     each: function (array, func) {
-        for(var i = 0, len = array.length; i < len; i++) {
-            func(array[i], i)
-        }
+      for(var i = 0, len = array.length; i < len; i++) {
+        func(array[i], i)
+      }
     },
     map: function(array, func) {
       var ret = [];
@@ -564,35 +564,37 @@ var Joose = {
 			Joose._.Class[key](key, klass, def);
 		 }
 		 var inits = function(params) {
-			if (this.toString === {}.toString) {
-			  this._oid = this.oid || Joose._.nameId++;
-			  this.toString = function() { 
-				 return this.meta._name.absolute + '<' + (this._oid) +'>'; 
-			  }
-			}
-			for(var i in klass.meta.inits.keys) {
-			  var key = klass.meta.inits.keys[i];
-			  var value = klass.meta.inits.values[i];
-			    if (typeof(value) == 'function') {
-				    this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
-			    } else {
-				    this[key] = value;
-			    }
-			}
-			if (typeof(params) == 'object') { 
-			  for(var i in params) {
-				 var fname = 'set'+Joose._.firstUp(i);
-				 if (this[fname]) {
-				 	try{
-					this[fname](params[i]);
-				 	}catch(e){
-				 		//FIXME check if this try-catch-block can be removed
-				 	}
-				 } else if (!this[i]) {
-					this[i] = params[i];
-				 }
-			  }
-			}
+       if (this.toString === {}.toString) {
+         this._oid = this.oid || Joose._.nameId++;
+         this.toString = function() { 
+          return this.meta._name.absolute + '<' + (this._oid) +'>'; 
+         }
+       }
+       for(var i in klass.meta.inits.keys) {
+         var key = klass.meta.inits.keys[i];
+         var value = klass.meta.inits.values[i];
+           if (typeof(value) == 'function') {
+             this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
+           } else {
+             this[key] = value;
+           }
+       }
+      if (typeof(params) == 'object') {
+        for (var attr in klass.meta.def.has) {
+          try {
+            if (typeof(params) !== 'undefined' && typeof(params[attr]) !== 'undefined') {
+              var fname = 'set'+Joose._.firstUp(attr);
+              if (this[fname]) {
+                this[fname](params[attr]);
+              } else if (!this[attr]) {
+                this[attr] = params[attr];
+              }
+            }
+          } catch (e) {
+            // FIXME: Demandware shit
+          }
+        }
+      }
 		 };
 		 
 		 if (klass.prototype.initialize) {

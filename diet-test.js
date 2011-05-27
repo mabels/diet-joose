@@ -804,7 +804,7 @@ function DefaultConstructor() {
   })
   var ins = new ClassDefaultConstructor({ x: 9, y: 7});
   assertEQ("DefaultConstructor:getX", ins.getX(), 9);
-  assertEQ("DefaultConstructor:y", ins.y, 7);
+  assertEQ("DefaultConstructor:y", ins.y, undefined);
 
   Class('ClassDefaultConstructor', {
     has: {
@@ -820,7 +820,7 @@ function DefaultConstructor() {
   })
   var ins = new ClassDefaultConstructor({ x: 9, y: 7});
   assertEQ("DefaultConstructor:override:getX", ins.getX(), 9);
-  assertEQ("DefaultConstructor:override:y", ins.y, 7);
+  assertEQ("DefaultConstructor:override:y", ins.y, undefined);
   assertEQ("DefaultConstructor:override:z", ins.z, 18);
 
   Class('PropertiesShouldNotOverrideMethods', {
@@ -835,6 +835,14 @@ function DefaultConstructor() {
   assertEQ('PropertiesShouldNotOverrideMethods:x', ins.getX(), 5);
   assertEQ('PropertiesShouldNotOverrideMethods:method', typeof ins.method, 'function');
   assertEQ('PropertiesShouldNotOverrideMethods:method', ins.method(), 'method');
+  
+  Class('ClassWithFunctionConstructorInitializer', {
+    has: {
+      x: {}
+    }
+  });
+  assertEQ('ClassWithFunctionConstructorInitializer:x', 
+        new ClassWithFunctionConstructorInitializer({x: 5}).getX(), 5);
 }
 
 DefaultConstructor();
@@ -849,17 +857,21 @@ function ClassToString() {
 
 ClassToString();
 
-function SingleTon() {
+(function SingleTon() {
   Class('CSingleTon', {
     does: Joose.Singleton,
-	 methods: {
-		singletonInitialize: function() {
-			this.specialInit = "Murks";
-		} 
+    has: {
+      prop: { init: 4 }
+    },
+    methods: {
+      singletonInitialize: function() {
+        this.specialInit = "Murks";
+      } 
 	 }
   });
   assertEQ('SingleTon:oid:', CSingleTon.getInstance()._oid, CSingleTon.getInstance()._oid);
   assertEQ('SingleTon:oid:', CSingleTon.getInstance().specialInit, CSingleTon.getInstance().specialInit);
+  assertEQ('SingleTon:oid:prop', CSingleTon.getInstance().prop, 4);
 
   try {
 //debugger;
@@ -867,9 +879,7 @@ function SingleTon() {
   } catch(e) {
   	assertEQ('SingleTon:new:', "The class CSingleTon is a singleton. Please use the class method getInstance().", e.message);
   }
-}
-
-SingleTon()
+})();
 
 
 
@@ -1032,8 +1042,20 @@ classNameToClassObjectTest();
   assertEQ('Class:classWithMetaClassExtension:validations:bla', validations['blub'], 'blub')
 })();
 
+(function initWithFunctionBody() {
+  Class('InitWithFunctionBody', {
+    has: {
+      prop: {
+        is: "rw",
+        init: function() { return "prop-val"; }
+      }
+    },
+  });
+  assertEQ('Class:initWithFunctionBody:prop', new InitWithFunctionBody().getProp(), 'prop-val');
+})();
+
 var start = new Date();
-for(var c = 60000; c < 5000; ++c) {
+for(var c = 5000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
     has: {
       x: {
@@ -1108,5 +1130,5 @@ for(var c = 60000; c < 5000; ++c) {
 
 }
 var end = new Date();
-console.log("15000 Klasses in msec:"+(end-start));
+console.log("5000 Klasses in msec:"+(end.getTime()-start.getTime()));
 missedAsserts > 0 && console.log('\n\t**** There where ' + missedAsserts + ' missed asserts ****\n')

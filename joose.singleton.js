@@ -10,7 +10,7 @@
 Role("Joose.Singleton", {
  before: {
 	  initialize: function () {
-			if(this.meta['class'].__instance) {
+			if(Joose._.singletonlock && this.meta['class'].__instance) {
 				 throw new Error("The class "+this.meta.className()+" is a singleton. Please use the class method getInstance().")
 			}
 	  }
@@ -24,14 +24,17 @@ Role("Joose.Singleton", {
  
  classMethods: {
 	  getInstance: function () {
-	    var registry = (Joose.Singleton.registry = (Joose.Singleton.registry || {}))
+	    var registry = (Joose.Singleton.registry || (Joose.Singleton.registry = {}))
 	    var name = this.meta.getName();
       if (registry[name]) {
 				 return registry[name];
 			}
-      registry[name] = new this.meta['class']()
+      Joose._.singletonlock = false;
+      registry[name] = this.meta.instantiate();
+      Joose._.singletonlock = true;
 			registry[name].singletonInitialize.apply(registry[name], arguments)
 			return registry[name];
 	  }
  }
-})
+});
+Joose._.singletonlock = true;
