@@ -575,28 +575,28 @@ var Joose = {
        for(var i in klass.meta.inits.keys) {
          var key = klass.meta.inits.keys[i];
          var value = klass.meta.inits.values[i];
-           if (typeof(value) == 'function') {
-             this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
-           } else {
-             this[key] = value;
-           }
+         if (typeof(value) == 'function') {
+           this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
+         } else {
+           this[key] = value;
+         }
        }
-      if (typeof(params) == 'object') {
-        for (var attr in klass.meta.def.has) {
-          try {
-            if (typeof(params) !== 'undefined' && typeof(params[attr]) !== 'undefined') {
-              var fname = 'set'+Joose._.firstUp(attr);
-              if (this[fname]) {
-                this[fname](params[attr]);
-              } else if (!this[attr]) {
-                this[attr] = params[attr];
-              }
-            }
-          } catch (e) {
-            // FIXME: Demandware shit
-          }
-        }
-      }
+       if (typeof(params) == 'object') {
+         for (var attr in klass.meta.def.has) {
+           try {
+             if (typeof(params[attr]) !== 'undefined') {
+               var fname = 'set'+Joose._.firstUp(attr);
+               if (this[fname]) {
+                 this[fname](params[attr]);
+               } else if (!this[attr]) {
+                 this[attr] = params[attr];
+               }
+             }
+           } catch (e) {
+             // FIXME: There are Rhino which throws exceptions on access java classes
+           }
+         }
+       }
 		 };
 		 
 		 if (klass.prototype.initialize) {

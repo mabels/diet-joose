@@ -1054,6 +1054,21 @@ classNameToClassObjectTest();
   assertEQ('Class:initWithFunctionBody:prop', new InitWithFunctionBody().getProp(), 'prop-val');
 })();
 
+
+(function initWithValue() {
+  Class('InitWithValue', {
+    has: {
+      prop: {
+        is: "rw",
+        init: 4711
+      }
+    },
+  });
+  assertEQ('Class:initWithValue:prop', new InitWithValue().getProp(), 4711);
+})();
+
+
+
 var start = new Date();
 for(var c = 5000; c < 5000; ++c) {
   _testbase = Class('TestBase'+c, {
