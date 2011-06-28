@@ -382,10 +382,8 @@ var Joose = {
           js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
           js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
           var init = part[i].init;
-          if (init) {
-            jsc.keys.push(i);
-            jsc.values.push(init);
-          }
+          jsc.keys.push(i);
+          jsc.values.push(init);
         }
         js.push('}');
         eval(js.join('')); // OPT could be also a colsure array but this will be slower

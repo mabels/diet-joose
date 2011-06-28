@@ -62,6 +62,14 @@ function assertEQ(title, c1, c2) {
     console.log('OK:'+title)
   }
 }
+function assertEQO(title, c1, c2) {
+  if (c1 !== c2) {
+    console.error('ERROR on:'+title+":"+c1+"!="+c2);
+    missedAsserts++;
+  } else {
+    console.log('OK:'+title)
+  }
+}
 
 function ModuleTest() {
   Module('Level1', function(m) { m.test = 'OK' })
@@ -1066,6 +1074,43 @@ classNameToClassObjectTest();
   });
   assertEQ('Class:initWithValue:prop', new InitWithValue().getProp(), 4711);
 })();
+
+(function initFalseValues() {
+  Class("InitFalseValues", {
+    has: {
+      _number0: {
+        is: "rw",
+        init: 0
+      },
+      _false: {
+        is: "rw",
+        init: false
+      },
+      _emptystring: {
+        is: "rw",
+        init: ""
+      },
+      _null: {
+        is: "rw",
+        init: null
+      },
+      _undefined: {
+        is: "rw",
+        init: undefined
+      },
+      _undefined_undefined: {
+        is: "rw",
+      }
+    },
+  })
+  a = new InitFalseValues();
+  assertEQO('Class:initFalseValues:number0', a.get_number0(), 0);
+  assertEQO('Class:initFalseValues:false', a.get_false(), false);
+  assertEQO('Class:initFalseValues:emptystring', a.get_emptystring(), "");
+  assertEQO('Class:initFalseValues:null', a.get_null(), null);
+  assertEQO('Class:initFalseValues:undefined', a.get_undefined(), undefined);
+  assertEQO('Class:initFalseValues:undefined_undefined', a.get_undefined_undefined(), undefined);
+})()
 
 
 
