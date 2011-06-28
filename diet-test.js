@@ -71,6 +71,8 @@ function assertEQO(title, c1, c2) {
   }
 }
 
+Array.prototype.forMurks = function() { console.log("ForMurks-Called"); throw new Error("ForMurks-Called") }
+
 function ModuleTest() {
   Module('Level1', function(m) { m.test = 'OK' })
   assertEQ('Module.Level1', Level1.test, 'OK')   
@@ -119,7 +121,7 @@ function ClassTest(klass) {
   assert('ClassTest', klass)
   assert('ClassTest', new klass())
 }
-ClassTest(Class('TestClass', {}));
+ClassTest(Class('EmptyTestClass', {}));
 
 var top = (function() { return this; })();
 function MetaTest(name, klass) {
@@ -205,7 +207,7 @@ MetaInstantiateContructorParametersTest(Class('MetaInstantiateContructorParamete
 
 function MethodsTest(names, klass) {
 //console.log('MethodsTest:'+util.inspect(new klass()))
-  for(var i in names) {
+  for(var i = names.length - 1; i >=0; --i) {
     var name = names[i]
     for(var j in name) {
       assertEQ('MethodsTest:Function:'+j+':', typeof((new klass())[j]), 'function')
@@ -214,7 +216,7 @@ function MethodsTest(names, klass) {
   }
 }
 
-MethodsTest([{'testBase': 'testBase'}], Class('TestClass', {
+MethodsTest([{'testBase': 'testBase'}], Class('u1TestClass', {
   methods: {
     testBase: function() { return 'testBase' }
   }
@@ -239,7 +241,7 @@ MethodsTest([{'testBase': 'testBase'}], Class('TestClass', {
 })));
 
 function ClassMethodsTest(names, klass) {
-  for(var i in names) {
+  for(var i = names.length -1; i >= 0; --i) {
     var name = names[i]
     for(var j in name) {
       assert('ClassMethodsTest:Function:'+j+':', typeof(klass[j]) == 'function')
@@ -248,7 +250,7 @@ function ClassMethodsTest(names, klass) {
   }
 }
 
-ClassMethodsTest([{'testBase': 'classtestBase'}], Class('TestClass', {
+ClassMethodsTest([{'testBase': 'classtestBase'}], Class('u2TestClass', {
   classMethods: {
     testBase: function() { return 'classtestBase' }
   },
@@ -259,7 +261,7 @@ ClassMethodsTest([{'testBase': 'classtestBase'}], Class('TestClass', {
 
 
 function SetGetTest(names, klass) {
-  for(var i in names) {
+  for(var i = names.length - 1; i >= 0; --i) {
     var name = names[i]
     for(var j in name) {
       var instance = new klass();
@@ -269,7 +271,7 @@ function SetGetTest(names, klass) {
   }
 }
   
-SetGetTest([{'Test': {set: '4711', get: '4711'}}], Class('TestClass', {
+SetGetTest([{'Test': {set: '4711', get: '4711'}}], Class('u3TestClass', {
   has: {
     test: {
       is: "rw"
@@ -420,17 +422,17 @@ RoleDefinitionTest('RoleTest', Role('RoleTest', {
 
 function RoleClassDoes(roles, klass) {
   assertEQ('RoleClassDoes:class.methods', klass.methods(), 'classMethods')
-  for(var i in roles) {
+  for(var i = roles.length - 1; i >= 0; --i) {
     var role = roles[i]
-    for(var method in role.meta.def.classMethods) {
+    for (var method in role.meta.def.classMethods) {
       assertEQ('RoleClassDoes:class:'+method, klass[method](), role.meta.def.classMethods[method]())
     }
   }
   var instance = new klass()
   assertEQ('RoleClassDoes:instance.methods', instance.methods(), 'methods')
-  for(var i in roles) {
+  for(var i = roles.length - 1; i >= 0; --i) {
     var role = roles[i]
-    for(var method in role.meta.def.methods) {
+    for (var method in role.meta.def.methods) {
       assertEQ('RoleClassDoes:instance:'+method, instance[method](), role.meta.def.methods[method]())
     }
   }

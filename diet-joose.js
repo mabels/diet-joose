@@ -240,7 +240,7 @@ var Joose = {
         if (!Joose._.isArray(parts)) { def[key] = parts = [parts]; }
         
         var applyRoleToClass = function(klass, role){
-        	for(var i in Joose._.roleParser) {
+        	for(var i = 0, l = Joose._.roleParser.length; i < l; ++i) {
               key = Joose._.roleParser[i];
               var notOverride = key == 'classMethods' || key == 'methods';
               Joose._.Class[key](key, klass, role.meta.def, notOverride);
@@ -265,7 +265,7 @@ var Joose = {
         // check if all requires are fulfilled
         for(var p = 0, l = roles.length; p < l; ++p) {
         	var role = roles[p]; 
-        	 for (var i in role.meta.def.requires) {
+        	 for (var i = 0, ll = role.meta.def.requires.length; i < ll; ++i) {
             var method = role.meta.def.requires[i];
             if (!klass.prototype[method]) {
               throw new Error("Role["+role.meta.getName()+"] requires method ["+method+"] in class ["+klass.meta.getName()+"]");
@@ -425,7 +425,6 @@ var Joose = {
   							ret = this.def.isa[i].meta.isa(klazz);	
   						}
   					} 
-  					
   					return ret;
   				},
           getInstanceMethods: function() {
@@ -559,7 +558,7 @@ var Joose = {
 		 klass.meta['c'] = klass;
      Joose._.Class.addMeta(klass);
 
-		 for(var i in Joose._.classParser) {
+		 for(var i = 0, l = Joose._.classParser.length; i < l; i++) {
 			var key = Joose._.classParser[i];
 			Joose._.Class[key](key, klass, def);
 		 }
@@ -570,7 +569,7 @@ var Joose = {
           return this.meta._name.absolute + '<' + (this._oid) +'>'; 
          }
        }
-       for(var i in klass.meta.inits.keys) {
+       for(var i = 0, l = klass.meta.inits.keys.length; i < l; ++i) {
          var key = klass.meta.inits.keys[i];
          var value = klass.meta.inits.values[i];
          if (typeof(value) == 'function') {
