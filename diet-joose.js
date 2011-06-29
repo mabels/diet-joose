@@ -177,6 +177,25 @@ var Joose = {
       return string.charAt(0).toUpperCase() + string.slice(1);
     },
     isArray: Array.isArray || function(obj) { return this.object.toString.call(obj) === '[object Array]'; },
+    getAttributes: function() { 
+      if (!this.def.isa)    { return this.def.has; }
+      if (this._attributes) { return this._attributes; } 
+      this._attributes = {}
+      var addAttributes = function(has) {
+        if (!has) { return } 
+        for(var i in has) {
+           this._attributes[i] = has[i]
+        }
+        return this._attributes;
+      }
+      for(var i = this.def.isa.length - 1; i >= 0; --i) {
+        addAttributes.apply(this, [this.def.isa[i].meta.getAttributes()])
+      }
+      for(var i = this.def.does.length - 1; i >= 0; --i) {
+        addAttributes.apply(this, [this.def.does[i].meta.getAttributes()])
+      }
+      return addAttributes.apply(this, [this.def.has]);
+    },
 
     Module: {
       base: joosetop,
@@ -186,15 +205,15 @@ var Joose = {
       }
     },
     Attribute: {
-      helper: {
+    helper: {
         isPersistent: function() {
-          return !!this.persistent;
+          return (typeof(this.persitent) == 'undefined') || !this.persistent;
         },
-        getGetterCode: function(fname, name, props) {
-          return 'klass["get'+fname+'"] = function()    { return this["'+name+'"]; };';
+        getGetterCode: function(fname, name, props, klazz) {
+          return '(klass["get'+fname+'"] = function()    { return this["'+name+'"]; }).source = klazz; ';
         },
-        getSetterCode: function(fname, name, props) {
-          return 'klass["set'+fname+'"] = function(val) { this["'+name+'"] = val; return this; };';
+        getSetterCode: function(fname, name, props, klazz) {
+          return '(klass["set'+fname+'"] = function(val) { this["'+name+'"] = val; return this; }).source = klazz;';
         }
       }
     },
@@ -242,19 +261,20 @@ var Joose = {
         var applyRoleToClass = function(klass, role){
         	for(var i = 0, l = Joose._.roleParser.length; i < l; ++i) {
               key = Joose._.roleParser[i];
-              var notOverride = key == 'classMethods' || key == 'methods';
+              var notOverride = key == 'classMethods' || key == 'methods'; 
               Joose._.Class[key](key, klass, role.meta.def, notOverride);
             }
         };
-        
+      
+console.log("does:", this.toString())
         var roles = [];
-        var applyDoes = function( theDoesRoles ){
+        var applyDoes = function( theDoesRoles, i, l, role ){
         	/*
         	 * we iterate through the roles and apply them one by one. 
         	 * so that a role which is applied later cannot override another function
         	 */
-        	for(var i = 0, l = theDoesRoles.length; i < l; ++i) {
-        		var role = theDoesRoles[i];
+        	for(i = 0, l = theDoesRoles.length; i < l; ++i) {
+        		role = theDoesRoles[i];
         		roles.push(role);
         		applyRoleToClass(klass, role);
             role.meta.def.does.length && applyDoes(role.meta.def.does);  
@@ -373,6 +393,7 @@ var Joose = {
         if (!part) { return; }
         var js = ['var hasser =  function(klass) {'];
         var jsc = klass.meta.inits;
+//console.log("HAS:", klass.meta.getName())
         for(var i in part) {
         	if(!part[i]){
         		continue;
@@ -386,6 +407,7 @@ var Joose = {
           jsc.values.push(init);
         }
         js.push('}');
+        var klazz = klass
         eval(js.join('')); // OPT could be also a colsure array but this will be slower
         hasser(klass.prototype);
       },
@@ -404,7 +426,7 @@ var Joose = {
       _: {
         toString: function() { return "Joose:"+this.meta._name.absolute; },
         meta: { 
-  				className: function() { return this._name.absolute; },
+          className: function() { return this._name.absolute; },
   				isa: function(klazz, i, ret) {
   					
   					// we also have to try if this current class and the klazz are identical
@@ -452,6 +474,7 @@ var Joose = {
   			klass.meta.className = this._.meta.className;
   			klass.meta.isa = this._.meta.isa;
   			klass.meta.getInstanceMethods = this._.meta.getInstanceMethods;
+  			klass.meta.getAttributes = Joose._.getAttributes;
   			klass.meta.addMethod = this._.meta.addMethod;
   			klass.meta.addClassMethod = this._.meta.addClassMethod;
   		},
@@ -532,11 +555,13 @@ var Joose = {
 		 else if (!Joose._.isArray(def.requires)) { def.requires = [def.requires]; }
 		 if (!def.does) { def.does = []; }
      else if (!Joose._.isArray(def.does)) { def.does = [def.does]; }
+
+     current.meta.getAttributes = Joose._.getAttributes
+
 		 current.meta.def = def;
      Joose._.Class.helper.methods(current, current.meta.def['classMethods']);
-     // Note: Required by mirapodo 
      current.meta.apply = function(clazz) { Joose._.Class['does']('does', clazz.meta['class'], {'does': current}); };
-	 }, 'Role');
+	  }, 'Role');
   },
   Class: function(name, def) {
     if (!def) {
@@ -551,9 +576,6 @@ var Joose = {
 		 klass.meta = current.meta;
 		 klass.meta.inits = { values: [], keys: [] };
 		 klass.meta.def = def;
-     klass.meta.getAttributes = function() { 
-       return this.def.has;
-     }
 		 klass.meta['class'] = klass;
 		 klass.meta['c'] = klass;
      Joose._.Class.addMeta(klass);
@@ -569,6 +591,7 @@ var Joose = {
           return this.meta._name.absolute + '<' + (this._oid) +'>'; 
          }
        }
+//console.log("INIT:", klass.meta.getName(), klass.meta.inits.keys)
        for(var i = 0, l = klass.meta.inits.keys.length; i < l; ++i) {
          var key = klass.meta.inits.keys[i];
          var value = klass.meta.inits.values[i];
@@ -579,13 +602,15 @@ var Joose = {
          }
        }
        if (typeof(params) == 'object') {
-         for (var attr in klass.meta.def.has) {
+         for (var attr in klass.meta.getAttributes()) {
            try {
-             if (typeof(params[attr]) !== 'undefined') {
+             if (typeof(params[attr]) != 'undefined') {
                var fname = 'set'+Joose._.firstUp(attr);
                if (this[fname]) {
-                 this[fname](params[attr]);
+//console.log("INIT:FUNC:",this.toString(), fname, params[attr], this[fname]);
+                 this[fname].apply(this, [params[attr]]);
                } else if (!this[attr]) {
+//console.log("INIT:ATTR:",this.meta.getName(), attr, params[attr]);
                  this[attr] = params[attr];
                }
              }

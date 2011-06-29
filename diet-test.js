@@ -1112,8 +1112,68 @@ classNameToClassObjectTest();
   assertEQO('Class:initFalseValues:null', a.get_null(), null);
   assertEQO('Class:initFalseValues:undefined', a.get_undefined(), undefined);
   assertEQO('Class:initFalseValues:undefined_undefined', a.get_undefined_undefined(), undefined);
-})()
+})();
 
+
+(function InitBaseAttributes() {
+  Class("ibaBase", {
+    does: Joose.Storage,
+    has: {
+      base: {
+        is: "rw",
+        init: 4711
+      },
+      key: {
+        is: "rw",
+        init: "TheKey"
+      }
+    }
+  })
+  Role("ibaRole", {
+    has: {
+      role: {
+        is: "rw",
+        init: 4611
+      }
+    }, 
+    methods: {
+      getRole: function() {
+        return "ROLE"
+      }
+    }
+  })
+  Class("ibaChild", {
+    isa: ibaBase,
+    does: [ibaRole],
+    has: {
+      child: {
+        is: "rw",
+        init: 4712
+      }
+    }
+  })
+  assertEQ('Class:InitBaseAttributes:ibaBase:plain:base',  (new ibaBase()).getBase(), 4711);
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getBase(), 4711);
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getChild(), 4712);
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:role', (new ibaChild()).getRole(), "ROLE");
+ 
+  assertEQ('Class:InitBaseAttributes:ibaBase:explict:base',  (new ibaBase({base: 4712})).getBase(), 4712);
+  assertEQ('Class:InitBaseAttributes:ibaChild:explict:base', (new ibaChild({base: 4712})).getBase(), 4712);
+  assertEQ('Class:InitBaseAttributes:ibaChild:explict:child', (new ibaChild({child: 4713})).getChild(), 4713);
+  assertEQ('Class:InitBaseAttributes:ibaChild:explict:role', (new ibaChild({role: 4714})).getRole(), 4714);
+
+  var attribs = (new ibaChild()).meta.getAttributes()
+  assert('Class:InitBaseAttributes:ibaChild:JSON:child', attribs.child);
+  assert('Class:InitBaseAttributes:ibaChild:JSON:base', attribs.base);
+  assert('Class:InitBaseAttributes:ibaChild:JSON:key', attribs.key);
+  assert('Class:InitBaseAttributes:ibaChild:JSON:role', attribs.role);
+
+  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:child', JSON.parse(JSON.stringify(new ibaChild())).child, 4712);
+  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:base', JSON.parse(JSON.stringify(new ibaChild())).base, 4711);
+  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:key', JSON.parse(JSON.stringify(new ibaChild())).key, "TheKey");
+  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:role', JSON.parse(JSON.stringify(new ibaChild())).role, 4611);
+
+})();
 
 
 var start = new Date();
