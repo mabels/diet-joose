@@ -1028,13 +1028,14 @@ classNameToClassObjectTest();
 (function classWithMetaClassExtension() {
   Class('MetaClass', {
     methods: {
-      handlePropvalidations: function (map) {
-        this.addClassMethod("_getValidations", function () {
+      handlePropvalidations: function(map) {
+        this.addClassMethod("_getValidations", function() {
           return map;
         });
       }
     }
   })
+
   Class('ClassWithMetaClass', {
     meta: MetaClass,
     validations: {
@@ -1047,6 +1048,7 @@ classNameToClassObjectTest();
       }
     }
   })
+
   var validations = ClassWithMetaClass.getValidations()
   assertEQ('Class:classWithMetaClassExtension:validations:bla', validations['bla'], 'bla')
   assertEQ('Class:classWithMetaClassExtension:validations:bla', validations['blub'], 'blub')
