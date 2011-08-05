@@ -172,6 +172,73 @@ var Joose = {
     anonymousName: function () {
       return 'Joose'+Joose._.nameId++;
     },
+    evalHas: function(part, jsc, klass) {
+//console.log("HAS:", klass.meta.getName())
+      var js = ['var hasser =  function(klass) {'];
+      for(var i in part) {
+        if (!part[i]) {
+          continue;
+        }
+        part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
+        var fname = Joose._.firstUp(i);
+        js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
+        js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
+        var init = part[i].init;
+        jsc.keys.push(i);
+        jsc.values.push(init);
+      }
+      js.push('}');
+      var klazz = klass
+      eval(js.join('')); // OPT could be also a colsure array but this will be slower
+      hasser(klass.prototype);
+    },
+    closureHas: function(part, jsc, klass) {
+      for(var i in part) {
+        if (!part[i]) {
+          continue;
+        }
+        part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
+        var fname = Joose._.firstUp(i);
+        klass.prototype["get"+fname] = (function(i) { return function()    { return this[i]; } })(i);
+        klass.prototype["set"+fname] = (function(i) { return function(val) { this[i] = val; return this; } })(i);
+        var init = part[i].init;
+        jsc.keys.push(i);
+        jsc.values.push(init);
+      }
+//console.log(klass)
+    },
+    rhinoNoSuchMethod: function(prev) { 
+      return function(id, val) {
+        if (id.indexOf('get') == 0) {
+          return this[id.slice(3).toLowerCase()]
+        }
+        if (id.indexOf('set') == 0) {
+          this[id.slice(3).toLowerCase()] = val
+          return this
+        }
+        if (prev) { 
+          return prev.apply(this, arguments) 
+        }
+      }
+    },
+    rhinoHas: function(part, jsc, klass) {
+      klass.prototype.__noSuchMethod__ = Joose._.rhinoNoSuchMethod(klass.prototype.__noSuchMethod__)
+      for(var i in part) {
+        if (!part[i]) {
+          continue;
+        }
+        part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
+        var init = part[i].init;
+        jsc.keys.push(i);
+        jsc.values.push(init);
+      }
+    },
+    buildHas: function(part, jsc, klass) { 
+      //this.buildHas = Joose._.evalHas; 
+      //this.buildHas = Joose._.closureHas; 
+      this.buildHas = Joose._.rhinoHas; 
+      Joose._.buildHas(part, jsc, klass)
+    },
     object: new Object(),
     firstUp: function (string) { 
       return string.charAt(0).toUpperCase() + string.slice(1);
@@ -379,37 +446,16 @@ console.log("does:", this.toString())
           return obj;
         }
       },
-      
       classMethods: function(key, klass, def, notOverride) {
         Joose._.Class.helper.methods(klass, def[key], notOverride);
       },
-      
       methods: function(key, klass, def, notOverride) {
         Joose._.Class.helper.methods(klass.prototype, def[key], notOverride);
       },
-      
       has: function(key, klass, def) {
         var part = def[key];
         if (!part) { return; }
-        var js = ['var hasser =  function(klass) {'];
-        var jsc = klass.meta.inits;
-//console.log("HAS:", klass.meta.getName())
-        for(var i in part) {
-        	if(!part[i]){
-        		continue;
-        	}
-          part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
-          var fname = Joose._.firstUp(i);
-          js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
-          js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
-          var init = part[i].init;
-          jsc.keys.push(i);
-          jsc.values.push(init);
-        }
-        js.push('}');
-        var klazz = klass
-        eval(js.join('')); // OPT could be also a colsure array but this will be slower
-        hasser(klass.prototype);
+        Joose._.buildHas(part, klass.meta.inits, klass);
       },
       before: function(key, klass, def) {
         Joose._.Class.helper.aop(key, klass, def, 'before'); 
