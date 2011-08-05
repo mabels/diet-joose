@@ -1163,6 +1163,7 @@ classNameToClassObjectTest();
       }
     }
   })
+
   assertEQ('Class:InitBaseAttributes:ibaBase:plain:base',  (new ibaBase()).getBase(), 4711);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getBase(), 4711);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getChild(), 4712);
@@ -1184,10 +1185,41 @@ classNameToClassObjectTest();
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:key', JSON.parse(JSON.stringify(new ibaChild())).key, "TheKey");
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:role', JSON.parse(JSON.stringify(new ibaChild())).role, 4611);
   try{
+
+//console.log(JSON.stringify(new ibaChildChild()), ibaChildChild.meta.inits)
     assertEQ('Class:InitBaseAttributes:ibaChildChild:JSON:role', JSON.parse(JSON.stringify(new ibaChildChild())).child, 4742);
   }catch(e){
     assertEQ('Class:InitBaseAttributes:ibaChild:withoutDoes: ' + e, true, false);
   }
+
+  Class("l0Class", {
+    methods: {
+      initialize: function() {
+        this.chain = ["l0Class"]
+      }
+    }
+  })
+  Class("l1Class", {
+    isa: l0Class,
+    override: {
+      initialize: function() {
+        this.SUPER()
+        this.chain.push("l1Class")
+      }
+    }
+  })
+  Class("l2Class", {
+    isa: l1Class,
+    override: {
+      initialize: function() {
+        this.SUPER()
+        this.chain.push("l2Class")
+      }
+    }
+  })
+  assertEQ('Class:InitBaseAttributes:l2Class:l0Class', (new l2Class()).chain[0], 'l0Class')
+  assertEQ('Class:InitBaseAttributes:l2Class:l1Class', (new l2Class()).chain[1], 'l1Class')
+  assertEQ('Class:InitBaseAttributes:l2Class:l2Class', (new l2Class()).chain[2], 'l2Class')
 
 })();
 

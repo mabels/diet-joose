@@ -192,6 +192,8 @@ var Joose = {
       eval(js.join('')); // OPT could be also a colsure array but this will be slower
       hasser(klass.prototype);
     },
+    closureHasGet: function(i) { return function()    { return this[i]; } },
+    closureHasSet: function(i) { return function(val) { this[i] = val; return this; } },
     closureHas: function(part, jsc, klass) {
       for(var i in part) {
         if (!part[i]) {
@@ -199,22 +201,24 @@ var Joose = {
         }
         part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
         var fname = Joose._.firstUp(i);
-        klass.prototype["get"+fname] = (function(i) { return function()    { return this[i]; } })(i);
-        klass.prototype["set"+fname] = (function(i) { return function(val) { this[i] = val; return this; } })(i);
+        klass.prototype["get"+fname] = this.closureHasGet(i);
+        klass.prototype["set"+fname] = this.closureHasSet(i);
         var init = part[i].init;
         jsc.keys.push(i);
         jsc.values.push(init);
+//console.log("i="+i+"=>"+init);
       }
-//console.log(klass)
     },
+    /*
     rhinoNoSuchMethod: function(prev) { 
       return function(id, val) {
         if (id.indexOf('get') == 0) {
-          return this[id.slice(3).toLowerCase()]
+          this[id] = this.closureHasGet(id.slice(3).toLowerCase());
+          return this[id];
         }
         if (id.indexOf('set') == 0) {
-          this[id.slice(3).toLowerCase()] = val
-          return this
+          this[id] = this.closureHasSet(id.slice(3).toLowerCase());
+          return this[id](val)
         }
         if (prev) { 
           return prev.apply(this, arguments) 
@@ -233,10 +237,11 @@ var Joose = {
         jsc.values.push(init);
       }
     },
+    */
     buildHas: function(part, jsc, klass) { 
       //this.buildHas = Joose._.evalHas; 
-      //this.buildHas = Joose._.closureHas; 
-      this.buildHas = Joose._.rhinoHas; 
+      this.buildHas = Joose._.closureHas; 
+      //this.buildHas = Joose._.rhinoHas; 
       Joose._.buildHas(part, jsc, klass)
     },
     object: new Object(),
@@ -426,8 +431,9 @@ var Joose = {
         },
         
         override: function (func, orig) {
+          var wrapper = function(me) { return function () { return orig.apply(me, arguments); } }
           return function overrideWrapper () {
-            var bound = (function(me) { return function () { return orig.apply(me, arguments); } })(this);
+            var bound = wrapper(this);
             var before  = this.SUPER;
             this.SUPER  = bound;
             var ret     = func.apply(this, arguments);
@@ -672,7 +678,7 @@ var Joose = {
 		 };
 		 
 		 if (klass.prototype.initialize) {
-			klass.prototype.initialize = Joose._.Class.helper.before(inits, klass.prototype.initialize);
+			klass.prototype.initialize = Joose._.Class.helper.after(inits, klass.prototype.initialize);
 		 } else {
 			klass.prototype.initialize = inits;
 		 }
