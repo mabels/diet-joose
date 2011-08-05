@@ -188,11 +188,15 @@ var Joose = {
         }
         return this._attributes;
       }
-      for(var i = this.def.isa.length - 1; i >= 0; --i) {
-        addAttributes.apply(this, [this.def.isa[i].meta.getAttributes()])
+      if(this.def.isa){
+        for(var i = this.def.isa.length - 1; i >= 0; --i) {
+          addAttributes.apply(this, [this.def.isa[i].meta.getAttributes()]);
+        }
       }
-      for(var i = this.def.does.length - 1; i >= 0; --i) {
-        addAttributes.apply(this, [this.def.does[i].meta.getAttributes()])
+      if(this.def.does){
+        for(var i = this.def.does.length - 1; i >= 0; --i) {
+          addAttributes.apply(this, [this.def.does[i].meta.getAttributes()]);
+        }
       }
       return addAttributes.apply(this, [this.def.has]);
     },
@@ -259,14 +263,14 @@ var Joose = {
         if (!Joose._.isArray(parts)) { def[key] = parts = [parts]; }
         
         var applyRoleToClass = function(klass, role){
-        	for(var i = 0, l = Joose._.roleParser.length; i < l; ++i) {
+   	  for(var i = 0, l = Joose._.roleParser.length; i < l; ++i) {
               key = Joose._.roleParser[i];
               var notOverride = key == 'classMethods' || key == 'methods'; 
               Joose._.Class[key](key, klass, role.meta.def, notOverride);
             }
         };
       
-console.log("does:", this.toString())
+//console.log("does:", this.toString())
         var roles = [];
         var applyDoes = function( theDoesRoles, i, l, role ){
         	/*

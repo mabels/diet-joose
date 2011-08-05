@@ -1154,6 +1154,15 @@ classNameToClassObjectTest();
       }
     }
   })
+  Class("ibaChildChild", {
+    isa: ibaChild,
+    has: {
+      child: {
+        is: "rw",
+        init: 4742
+      }
+    }
+  })
   assertEQ('Class:InitBaseAttributes:ibaBase:plain:base',  (new ibaBase()).getBase(), 4711);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getBase(), 4711);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getChild(), 4712);
@@ -1174,6 +1183,11 @@ classNameToClassObjectTest();
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:base', JSON.parse(JSON.stringify(new ibaChild())).base, 4711);
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:key', JSON.parse(JSON.stringify(new ibaChild())).key, "TheKey");
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:role', JSON.parse(JSON.stringify(new ibaChild())).role, 4611);
+  try{
+    assertEQ('Class:InitBaseAttributes:ibaChildChild:JSON:role', JSON.parse(JSON.stringify(new ibaChildChild())).child, 4742);
+  }catch(e){
+    assertEQ('Class:InitBaseAttributes:ibaChild:withoutDoes: ' + e, true, false);
+  }
 
 })();
 
