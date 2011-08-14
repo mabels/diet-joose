@@ -1118,12 +1118,110 @@ classNameToClassObjectTest();
 
 
 (function InitBaseAttributes() {
+  Class("l0Class", {
+    has: {
+      layer: {
+        is: "rw",
+        init: function() { console.error("l0Class:layer"); return ["Mother"] }
+      }
+    },
+    before: {
+      initialize: function() {
+        this.layer.push("BeforeZombyMother")
+      }
+    },
+    methods: {
+      initialize: function() {
+        this.layer.push("ZombyMother")
+        this.chain = ["l0Class"]
+      }
+    },
+    after: {
+      initialize: function() {
+        this.layer.push("AfterZombyMother")
+      }
+    }
+  })
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Mother', (new l0Class()).layer[0], 'Mother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Before', (new l0Class()).layer[1], 'BeforeZombyMother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Zomby', (new l0Class()).layer[2], 'ZombyMother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:After', (new l0Class()).layer[3], 'AfterZombyMother')
+
+  Class("l1Class", {
+    isa: l0Class,
+    has: {
+      layer: {
+        is: "rw",
+        init: function() { console.error("l1Class:layer"+this.toString()); this.layer.push(["Child1"]); return this.layer }
+      }
+    },
+    before: {
+      initialize: function() {
+        this.layer.push("BeforeZombyChild")
+      }
+    },
+    after: {
+      initialize: function() {
+        this.layer.push("AfterZombyChild")
+      }
+    },
+    override: {
+      initialize: function() {
+        this.SUPER()
+        this.layer.push("ZombyChild")
+        this.chain.push("l1Class")
+      }
+    }
+  })
+
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Mother', (new l1Class()).layer[0], 'Mother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Before', (new l1Class()).layer[1], 'BeforeZombyChild')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Before', (new l1Class()).layer[2], 'BeforeZombyMother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Zomby', (new l1Class()).layer[3], 'ZombyMother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:After', (new l1Class()).layer[4], 'AfterZombyMother')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Zomby', (new l1Class()).layer[5], 'ZombyChild')
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Before', (new l1Class()).layer[6], 'AfterZombyChild')
+
+  Class("l2Class", {
+    isa: l1Class,
+    has: {
+      layer: {
+        is: "rw",
+        init: function() { console.error("l2Class:layer"+this.toString()); this.layer.push(["Child2"]) ; return this.layer}
+      }
+    },
+    override: {
+      initialize: function() {
+        this.SUPER()
+        this.layer.push("ZombyChildChild")
+        this.chain.push("l2Class")
+      }
+    }
+  })
+
+  assertEQ('Class:InitBaseAttributes:l2Class:l0Class', (new l2Class()).chain[0], 'l0Class')
+
+  assertEQ('Class:InitBaseAttributes:l2Class:l1Class', (new l2Class()).chain[1], 'l1Class')
+  assertEQ('Class:InitBaseAttributes:l2Class:l2Class', (new l2Class()).chain[2], 'l2Class')
+
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer().length, 6);
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[0], "Mother");
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[1], "ZombyMother");
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[2], "Child1");
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[3], "ZombyChild1");
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[4], "Child2");
+  assertEQ('Class:InitBaseAttributes:l2Class:plain:layer',  (new l2Class()).getLayer()[5], "ZombyChild2");
+
   Class("ibaBase", {
     does: Joose.Storage,
     has: {
       base: {
         is: "rw",
         init: 4711
+      },
+      layer: {
+        is: "rw",
+        init: function() { console.error("Base:layer"); return ["Mother"] }
       },
       key: {
         is: "rw",
@@ -1148,6 +1246,14 @@ classNameToClassObjectTest();
     isa: ibaBase,
     does: [ibaRole],
     has: {
+      base: {
+        is: "rw",
+        init: function() { return this.base + 1 }
+      },
+      layer: {
+        is: "rw",
+        init: function() { console.error("Child1:layer"+this.toString()); this.layer.push(["Child1"]); return this.layer }
+      },
       child: {
         is: "rw",
         init: 4712
@@ -1157,6 +1263,14 @@ classNameToClassObjectTest();
   Class("ibaChildChild", {
     isa: ibaChild,
     has: {
+      base: {
+        is: "rw",
+        init: function() { return this.base + 1 }
+      },
+      layer: {
+        is: "rw",
+        init: function() { console.error("Child2:layer"+this.toString()); this.layer.push(["Child2"]) ; return this.layer}
+      },
       child: {
         is: "rw",
         init: 4742
@@ -1165,14 +1279,27 @@ classNameToClassObjectTest();
   })
 
   assertEQ('Class:InitBaseAttributes:ibaBase:plain:base',  (new ibaBase()).getBase(), 4711);
-  assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getBase(), 4711);
+  assertEQ('Class:InitBaseAttributes:ibaBase:plain:layer',  (new ibaBase()).getLayer().length, 1);
+  assertEQ('Class:InitBaseAttributes:ibaBase:plain:layer',  (new ibaBase()).getLayer()[0], "Mother");
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getBase(), 4712);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:base', (new ibaChild()).getChild(), 4712);
   assertEQ('Class:InitBaseAttributes:ibaChild:plain:role', (new ibaChild()).getRole(), "ROLE");
+
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:layer',  (new ibaChild()).getLayer().length, 2);
+console.error((new ibaChild()).getLayer())
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:layer',  (new ibaChild()).getLayer()[0], "Mother");
+  assertEQ('Class:InitBaseAttributes:ibaChild:plain:layer',  (new ibaChild()).getLayer()[1], "Child1");
  
   assertEQ('Class:InitBaseAttributes:ibaBase:explict:base',  (new ibaBase({base: 4712})).getBase(), 4712);
   assertEQ('Class:InitBaseAttributes:ibaChild:explict:base', (new ibaChild({base: 4712})).getBase(), 4712);
+  assertEQ('Class:InitBaseAttributes:ibaChild:explict:base', (new ibaChild()).getBase(), 4712);
   assertEQ('Class:InitBaseAttributes:ibaChild:explict:child', (new ibaChild({child: 4713})).getChild(), 4713);
   assertEQ('Class:InitBaseAttributes:ibaChild:explict:role', (new ibaChild({role: 4714})).getRole(), 4714);
+
+  assertEQ('Class:InitBaseAttributes:ibaChildChild:plain:layer',  (new ibaChildChild()).getLayer().length, 3);
+  assertEQ('Class:InitBaseAttributes:ibaChildChild:plain:layer',  (new ibaChildChild()).getLayer()[0], "Mother");
+  assertEQ('Class:InitBaseAttributes:ibaChildChild:plain:layer',  (new ibaChildChild()).getLayer()[1], "Child1");
+  assertEQ('Class:InitBaseAttributes:ibaChildChild:plain:layer',  (new ibaChildChild()).getLayer()[2], "Child2");
 
   var attribs = (new ibaChild()).meta.getAttributes()
   assert('Class:InitBaseAttributes:ibaChild:JSON:child', attribs.child);
@@ -1181,7 +1308,7 @@ classNameToClassObjectTest();
   assert('Class:InitBaseAttributes:ibaChild:JSON:role', attribs.role);
 
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:child', JSON.parse(JSON.stringify(new ibaChild())).child, 4712);
-  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:base', JSON.parse(JSON.stringify(new ibaChild())).base, 4711);
+  assertEQ('Class:InitBaseAttributes:ibaChild:JSON:base', JSON.parse(JSON.stringify(new ibaChild())).base, 4712);
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:key', JSON.parse(JSON.stringify(new ibaChild())).key, "TheKey");
   assertEQ('Class:InitBaseAttributes:ibaChild:JSON:role', JSON.parse(JSON.stringify(new ibaChild())).role, 4611);
   try{
@@ -1191,35 +1318,6 @@ classNameToClassObjectTest();
   }catch(e){
     assertEQ('Class:InitBaseAttributes:ibaChild:withoutDoes: ' + e, true, false);
   }
-
-  Class("l0Class", {
-    methods: {
-      initialize: function() {
-        this.chain = ["l0Class"]
-      }
-    }
-  })
-  Class("l1Class", {
-    isa: l0Class,
-    override: {
-      initialize: function() {
-        this.SUPER()
-        this.chain.push("l1Class")
-      }
-    }
-  })
-  Class("l2Class", {
-    isa: l1Class,
-    override: {
-      initialize: function() {
-        this.SUPER()
-        this.chain.push("l2Class")
-      }
-    }
-  })
-  assertEQ('Class:InitBaseAttributes:l2Class:l0Class', (new l2Class()).chain[0], 'l0Class')
-  assertEQ('Class:InitBaseAttributes:l2Class:l1Class', (new l2Class()).chain[1], 'l1Class')
-  assertEQ('Class:InitBaseAttributes:l2Class:l2Class', (new l2Class()).chain[2], 'l2Class')
 
 })();
 
