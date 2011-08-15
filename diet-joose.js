@@ -246,7 +246,16 @@ var Joose = {
     },
     object: new Object(),
     firstUp: function (string) { 
-      return string.charAt(0).toUpperCase() + string.slice(1);
+      var idx = 0
+      while (idx < string.length) {
+        var first = string.charAt(idx).toUpperCase()
+        if ('A' <= first && first <= 'Z') {
+          return first + string.slice(idx+1);
+        } else {
+          ++idx;
+        }
+      }
+      return string
     },
     isArray: Array.isArray || function(obj) { return this.object.toString.call(obj) === '[object Array]'; },
     getAttributes: function() { 

@@ -6,7 +6,9 @@ if (typeof(require) == 'undefined' && typeof(imports) == 'object') {
               log: print,
               error: print
             }
-} else */ if (typeof(require) == 'undefined' && typeof(load) == 'function') {
+} else 
+*/ 
+if (typeof(require) == 'undefined' && typeof(load) == 'function') {
   // Rhino
   require = function(a) { return load(a+'.js'); }
   console = {
@@ -20,11 +22,19 @@ if (typeof(require) == 'undefined' && typeof(imports) == 'object') {
   }
 }
 
-require('./json2')
-require('./diet-joose');
-require('./joose.singleton')
-require('./joose.storage')
-require('./joose.types')
+if (typeof(process) != "undefined" && process.ARGV[process.ARGV.length-1] == 'native') {
+  console.error("native-joose")
+  require('./native-joose.js');
+  var diet = false;
+} else {
+  var diet = true;
+  console.error("diet-joose")
+  require('./json2')
+  require('./diet-joose');
+  require('./joose.singleton')
+  require('./joose.storage')
+  require('./joose.types')
+}
 
 var missedAsserts = 0;
 
@@ -59,7 +69,7 @@ function assertEQ(title, c1, c2) {
     console.error('ERROR on:'+title+":"+c1+"!="+c2);
     missedAsserts++;
   } else {
-    console.log('OK:'+title)
+    console.error('OK:'+title)
   }
 }
 function assertEQO(title, c1, c2) {
@@ -67,7 +77,7 @@ function assertEQO(title, c1, c2) {
     console.error('ERROR on:'+title+":"+c1+"!="+c2);
     missedAsserts++;
   } else {
-    console.log('OK:'+title)
+    console.error('OK:'+title)
   }
 }
 
@@ -77,11 +87,11 @@ function ModuleTest() {
   Module('Level1', function(m) { m.test = 'OK' })
   assertEQ('Module.Level1', Level1.test, 'OK')   
 
-  Module('Level1.Level2.Level3', function(m) { m.test = 'OK' })
-  assertEQ('Module.Level1.Level2.Level3', Level1.Level2.Level3.test, 'OK')
+  diet && Module('Level1.Level2.Level3', function(m) { m.test = 'OK' })
+  diet && assertEQ('Module.Level1.Level2.Level3', Level1.Level2.Level3.test, 'OK')
 
-  Module('Level0.Level1.Level2.Level3', function(m) { m.test = 'OK' })
-  assertEQ('Module.Level0.Level1.Level2.Level3', Level0.Level1.Level2.Level3.test, 'OK')
+  diet && Module('Level0.Level1.Level2.Level3', function(m) { m.test = 'OK' })
+  diet && assertEQ('Module.Level0.Level1.Level2.Level3', Level0.Level1.Level2.Level3.test, 'OK')
 
   Module('Level10', function(m) { 
     Module('Level11', function(m) { 
@@ -92,11 +102,11 @@ function ModuleTest() {
   assertEQ('Level10:relative', Level10.meta._name.relative, 'Level10');
   assertEQ('Level10:absolute', Level10.meta._name.absolute, 'Level10');
 
-  assertEQ('Level11:relative', Level10.Level11.meta._name.relative, 'Level11');
-  assertEQ('Level11:absolute', Level10.Level11.meta._name.absolute, 'Level10.Level11');
+  diet && assertEQ('Level11:relative', Level10.Level11.meta._name.relative, 'Level11');
+  diet && assertEQ('Level11:absolute', Level10.Level11.meta._name.absolute, 'Level10.Level11');
 
-  assertEQ('Level12:relative', Level10.Level11.Level12.meta._name.relative, 'Level12');
-  assertEQ('Level12:absolute', Level10.Level11.Level12.meta._name.absolute, 'Level10.Level11.Level12');
+  diet && assertEQ('Level12:relative', Level10.Level11.Level12.meta._name.relative, 'Level12');
+  diet && assertEQ('Level12:absolute', Level10.Level11.Level12.meta._name.absolute, 'Level10.Level11.Level12');
 
   Module('Level0.Level1.Level2.Level3', function(m) { 
     m.test = 'OK';
@@ -152,16 +162,16 @@ function MetaTest(name, klass) {
 }
 
 MetaTest({relative: 'CTestClass', absolute: 'CTestClass', type: 'isClass' }, Class('CTestClass', {}));
-MetaTest({relative: "CTestClass", absolute: 'CTest.CTestClass', type: 'isClass'}, Class('CTest.CTestClass', {}));
+diet && MetaTest({relative: "CTestClass", absolute: 'CTest.CTestClass', type: 'isClass'}, Class('CTest.CTestClass', {}));
 
 MetaTest({relative: 'RTestClass', absolute: 'RTestClass', type: 'isRole' }, Role('RTestClass', {}));
-MetaTest({relative: "RTestClass", absolute: 'RTest.RTestClass', type: 'isRole'}, Role('RTest.RTestClass', {}));
+diet && MetaTest({relative: "RTestClass", absolute: 'RTest.RTestClass', type: 'isRole'}, Role('RTest.RTestClass', {}));
 
 MetaTest({relative: 'MTestClass', absolute: 'MTestClass', type: 'isModule' }, Module('MTestClass', function(){}));
-MetaTest({relative: "MTestClass", absolute: 'MTest.MTestClass', type: 'isModule'}, Module('MTest.MTestClass', function(){}));
+diet && MetaTest({relative: "MTestClass", absolute: 'MTest.MTestClass', type: 'isModule'}, Module('MTest.MTestClass', function(){}));
 
 function MetaClassTest(exp, klass) {
-  assertEQ('MetaClassTest:class', klass.meta['class'].myClassMethod(), exp);
+  diet && assertEQ('MetaClassTest:class', klass.meta['class'].myClassMethod(), exp);
   assertEQ('MetaClassTest:c', klass.meta.c.myClassMethod(), exp);
 }
 
@@ -176,7 +186,7 @@ function MetaInstantiateTest(klass) {
   assertEQ('MetaInstantiateTest:instantiate1', typeof klass.meta.instantiate, 'function');
   var inst = klass.meta.instantiate();
   assert('MetaInstantiateTest:instantiate2', inst instanceof MetaInstantiateTestClass);
-  assertEQ('MetaInstantiateTest:classMethod', inst.meta['class'].classMethod(), 'classMethod');
+  diet && assertEQ('MetaInstantiateTest:classMethod', inst.meta['class'].classMethod(), 'classMethod');
   assertEQ('MetaInstantiateTest:method', inst.method(), 'method');
 }
 MetaInstantiateTest(Class('MetaInstantiateTestClass', {
@@ -355,7 +365,7 @@ AopTest('Class', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class(
 //console.log('AfterTest'+util.inspect(AfterTest.meta.aops))
 
 /* With Role */
-AopTest('Role', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
+diet && AopTest('Role', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest', {
   methods: {
     beforeCallBack: function(fn) {
       fn('orig')
@@ -371,7 +381,7 @@ AopTest('Role', 'beforeCallBack', ['before', 'orig', 'last'], Class('BeforeTest'
   })
 }));
 
-AopTest('Role', 'afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
+diet && AopTest('Role', 'afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
   methods: {
     afterCallBack: function(fn) {
       fn('orig')
@@ -387,7 +397,7 @@ AopTest('Role', 'afterCallBack', ['orig', 'after', 'last'], Class('AfterTest', {
   })
 }));
   
-AopTest('Role', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class('OverrideTest', {
+diet && AopTest('Role', 'overrideCallBack', ['before', 'orig', 'after', 'last'], Class('OverrideTest', {
   methods: {
     overrideCallBack: function(fn) {
       return fn('orig');
@@ -473,11 +483,11 @@ var theRole = Role('RoleTest42', {
     roleMethod: function() { return "roleMethod"; }
   }
 });
-theClass.apply(theRole);
-RoleClassDoes([theParentRole, theRole], theClass);
+diet && theClass.apply(theRole);
+diet && RoleClassDoes([theParentRole, theRole], theClass);
 //---------------------------------------------------------------
 
-RoleClassDoes([Role('RoleTest', {
+diet && RoleClassDoes([Role('RoleTest', {
   requires: 'methods',
   classMethods: {
     roleClassMethod: function() { return "roleClassMethod"; }
@@ -496,7 +506,7 @@ RoleClassDoes([Role('RoleTest', {
 }))
 //---------------------------------------------------------------
 
-RoleClassDoesFailure('Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
+diet && RoleClassDoesFailure('Role[RoleTest] requires method [Failure] in class [xClassTest]', [Role('RoleTest', {
   requires: 'Failure',
   classMethods: {
     roleClassMethod: function() { return "roleClassMethod"; }
@@ -515,8 +525,8 @@ RoleClassDoesFailure('Role[RoleTest] requires method [Failure] in class [xClassT
 }) })
 
 
-RoleClassDoes([
-Role('RoleTest0', {
+diet && RoleClassDoes([
+diet && Role('RoleTest0', {
   requires: 'method0',
   classMethods: {
     classRoleTest0: function() { return "classRoleTest0"; }
@@ -525,7 +535,7 @@ Role('RoleTest0', {
     instanceRoleTest0: function() { return "instanceRoleTest0"; }
   }
 }),
-Role('RoleTest1', {
+diet && Role('RoleTest1', {
   requires: ['method1'],
   classMethods: {
     classRoleTest1: function() { return "classRoleTest1"; }
@@ -535,7 +545,7 @@ Role('RoleTest1', {
   }
 })
 ],
-Class('xClassTest', {
+diet && Class('xClassTest', {
   does: [RoleTest0, RoleTest1],
   classMethods: {
     methods: function() { return "classMethods"; }
@@ -547,7 +557,7 @@ Class('xClassTest', {
   }
 }))
 
-var parentRole = Role('RoleTest1', {
+diet && (parentRole = Role('RoleTest1', {
           requires: 'method1',
           classMethods: {
             classRoleTest1: function() { return "classRoleTest1"; }
@@ -555,8 +565,8 @@ var parentRole = Role('RoleTest1', {
           methods: {
             instanceRoleTest1: function() { return "instanceRoleTest1"; }
           }
-        });
-RoleClassDoes([Role('RoleTest0', {
+        }))
+diet && RoleClassDoes([Role('RoleTest0', {
   requires: 'method0',
   does: parentRole,
   classMethods: {
@@ -722,7 +732,7 @@ IsaTest(Class('SecondChild', {
   }
 }))
 
-IsaTest(Class('SecondChild', {
+diet && IsaTest(Class('SecondChild', {
   isa: [Class('FirstChild', {
           does: Role('RoleTestBase', {
                 has: {
@@ -808,7 +818,8 @@ function DefaultConstructor() {
   Class('ClassDefaultConstructor', {
     has: {
       x: { 
-            init: 4
+            init: 4,
+            is: "rw"
          }
     }
   })
@@ -819,7 +830,8 @@ function DefaultConstructor() {
   Class('ClassDefaultConstructor', {
     has: {
       x: { 
-            init: 4
+            init: 4,
+            is: "rw"
          }
     },
     override: {
@@ -835,7 +847,7 @@ function DefaultConstructor() {
 
   Class('PropertiesShouldNotOverrideMethods', {
     has: {
-      x: { init: 2 }
+      x: { init: 2, is: "rw" }
     },
     methods: {
       method: function() { return "method"; }
@@ -848,7 +860,9 @@ function DefaultConstructor() {
   
   Class('ClassWithFunctionConstructorInitializer', {
     has: {
-      x: {}
+      x: {
+        is: "rw"
+      }
     }
   });
   assertEQ('ClassWithFunctionConstructorInitializer:x', 
@@ -1016,7 +1030,7 @@ function classNameToClassObjectTest() {
   assertEQ('Class:classNameToClassObjectTest', CclassNameToClassObjectTest.meta.classNameToClassObject('CclassNameToClassObjectTest'), CclassNameToClassObjectTest);
 }
 
-classNameToClassObjectTest();
+diet && classNameToClassObjectTest();
 
 (function classNameToClassObjectTest2() {
   Module('MclassNameToClassObjectTest2', function(m) {
@@ -1025,8 +1039,12 @@ classNameToClassObjectTest();
   assertEQ('Class:classNameToClassObjectTest2', Joose.Class.meta.classNameToClassObject('MclassNameToClassObjectTest2.Class'), MclassNameToClassObjectTest2.Class);
 })();
 
-(function classWithMetaClassExtension() {
-  Class('MetaClass', {
+diet && (function classWithMetaClassExtension() {
+//for(var i in top) console.error(i)
+  Class('xxMetaClass', {
+    classMethods: {
+      create: Joose.Class.create
+    },
     methods: {
       handlePropvalidations: function(map) {
         this.addClassMethod("_getValidations", function() {
@@ -1037,7 +1055,7 @@ classNameToClassObjectTest();
   })
 
   Class('ClassWithMetaClass', {
-    meta: MetaClass,
+    meta: xxMetaClass,
     validations: {
       bla: 'bla',
       blub: 'blub'
@@ -1108,55 +1126,101 @@ classNameToClassObjectTest();
     },
   })
   a = new InitFalseValues();
-  assertEQO('Class:initFalseValues:number0', a.get_number0(), 0);
-  assertEQO('Class:initFalseValues:false', a.get_false(), false);
-  assertEQO('Class:initFalseValues:emptystring', a.get_emptystring(), "");
-  assertEQO('Class:initFalseValues:null', a.get_null(), null);
-  assertEQO('Class:initFalseValues:undefined', a.get_undefined(), undefined);
-  assertEQO('Class:initFalseValues:undefined_undefined', a.get_undefined_undefined(), undefined);
+//for(var i in a) console.error(i)
+  assertEQO('Class:initFalseValues:number0', a.getNumber0(), 0);
+  assertEQO('Class:initFalseValues:false', a.getFalse(), false);
+  assertEQO('Class:initFalseValues:emptystring', a.getEmptystring(), "");
+  assertEQO('Class:initFalseValues:null', a.getNull(), null);
+  assertEQO('Class:initFalseValues:undefined', a.getUndefined(), undefined);
+  assertEQO('Class:initFalseValues:undefined_undefined', a.getUndefined_undefined(), undefined);
 })();
 
 
 (function InitBaseAttributes() {
+  Class("l0NoConstructor", {
+    has: {
+      layer: {
+        is: "rw",
+        init: function() { 
+          var layer = [];  
+          layer.push("Mother"); 
+          return layer 
+        }
+      },
+      reference: {
+        is: "rw",
+        init: 7
+      }
+    }
+  })
+  assertEQ('Class:InitBaseAttributes:l0NoConstructor:7',      (new l0NoConstructor()).reference, 7)
+  assertEQ('Class:InitBaseAttributes:l0NoConstructor:Mother', (new l0NoConstructor()).layer[0], 'Mother')
+
   Class("l0Class", {
     has: {
       layer: {
         is: "rw",
-        init: function() { console.error("l0Class:layer"); return ["Mother"] }
+        init: function() { 
+          var layer = [];  
+          layer.push("Mother"); 
+          return layer 
+        }
+      },
+      reference: {
+        is: "rw",
+        init: 7
       }
     },
     before: {
       initialize: function() {
-        this.layer.push("BeforeZombyMother")
+console.error("l0Class:layer:initialze:before", this.layer)
+        this.layer = (this.layer && typeof(this.layer) == "function") ? ["Function"] : this.layer
+        this.layer.push("BeforeMother")
       }
     },
     methods: {
       initialize: function() {
-        this.layer.push("ZombyMother")
+console.error("l0Class:layer:initialze:", this.layer )
+        this.layer = (this.layer && typeof(this.layer) == "function") ? ["Function"] : this.layer
+        this.layer.push("Mother")
         this.chain = ["l0Class"]
       }
     },
     after: {
       initialize: function() {
-        this.layer.push("AfterZombyMother")
+        this.layer = (this.layer && typeof(this.layer) == "function") ? ["Function"] : this.layer
+console.error("l0Class:layer:initialze:after", this.layer)
+        this.layer.push("AfterMother")
       }
     }
   })
+//debugger
+console.error("******************2****************");
+  assertEQ('Class:InitBaseAttributes:l0Class:l0Class:7', (new l0Class()).reference, 7)
   assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Mother', (new l0Class()).layer[0], 'Mother')
+console.error("******************3****************");
   assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Before', (new l0Class()).layer[1], 'BeforeZombyMother')
+console.error("******************4****************");
   assertEQ('Class:InitBaseAttributes:l0Class:l0Class:Zomby', (new l0Class()).layer[2], 'ZombyMother')
+console.error("******************5****************");
   assertEQ('Class:InitBaseAttributes:l0Class:l0Class:After', (new l0Class()).layer[3], 'AfterZombyMother')
+console.error("******************6****************");
 
   Class("l1Class", {
     isa: l0Class,
     has: {
       layer: {
         is: "rw",
-        init: function() { console.error("l1Class:layer"+this.toString()); this.layer.push(["Child1"]); return this.layer }
+        init: function() { 
+          console.error("l1Class:layer"+this.toString()); 
+          this.layer.push(["Child1"]); 
+          return this.layer 
+        }
       }
     },
     before: {
       initialize: function() {
+        this.layer = this.layer || []
         this.layer.push("BeforeZombyChild")
       }
     },
