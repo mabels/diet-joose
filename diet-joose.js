@@ -258,28 +258,35 @@ var Joose = {
       return string
     },
     isArray: Array.isArray || function(obj) { return this.object.toString.call(obj) === '[object Array]'; },
-    getAttributes: function() { 
-      if (!this.def.isa)    { return this.def.has; }
-      if (this._attributes) { return this._attributes; } 
-      this._attributes = {}
-      var addAttributes = function(has) {
-        if (!has) { return } 
-        for(var i in has) {
-           this._attributes[i] = has[i]
-        }
-        return this._attributes;
+    addAttributes: function(has) {
+      if (!has) { return; }
+      for (var i in has) {
+        this._attributes[i] = has[i];
       }
-      if(this.def.isa){
-        for(var i = this.def.isa.length - 1; i >= 0; --i) {
-          addAttributes.apply(this, [this.def.isa[i].meta.getAttributes()]);
+    },
+    getAttributes: function() {
+      if (!this._attributes) {
+        if (this.def.isa || this.def.does) {
+          this._attributes = {};
+
+          if (this.def.isa) {
+            for (var i = this.def.isa.length - 1; i >= 0; --i) {
+              Joose._.addAttributes.apply(this, [this.def.isa[i].meta.getAttributes()]);
+            }
+          }
+
+          if (this.def.does) {
+            for (var i = this.def.does.length - 1; i >= 0; --i) {
+              Joose._.addAttributes.apply(this, [this.def.does[i].meta.getAttributes()]);
+            }
+          }
+
+          Joose._.addAttributes.apply(this, [this.def.has]);
+        } else {
+          this._attributes = this.def.has;
         }
       }
-      if(this.def.does){
-        for(var i = this.def.does.length - 1; i >= 0; --i) {
-          addAttributes.apply(this, [this.def.does[i].meta.getAttributes()]);
-        }
-      }
-      return addAttributes.apply(this, [this.def.has]);
+      return this._attributes;
     },
 
     Module: {
