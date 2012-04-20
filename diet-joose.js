@@ -166,8 +166,8 @@ var Joose = {
     }
   },
   _: {
-    classParser: ['meta', 'isa', 'classMethods', 'has', 'methods', 'does', 'before', 'after', 'around', 'override'],
-    roleParser: ['classMethods', 'has', 'methods', 'before', 'after', 'around', 'override'],
+    classParser: ['meta', 'isa', 'classMethods', 'methods', 'does', 'has', 'before', 'after', 'around', 'override'],
+    roleParser: ['classMethods', 'methods', 'has', 'before', 'after', 'around', 'override'],
     nameId: ~~(Math.random()*0xdeadbeaf),
     anonymousName: function () {
       return 'Joose'+Joose._.nameId++;
@@ -181,8 +181,8 @@ var Joose = {
         }
         part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
         var fname = Joose._.firstUp(i);
-        js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));  
-        js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
+        (klass.meta.def.methods && klass.meta.def.methods["get"+fname]) || js.push(Joose._.Attribute.helper.getGetterCode(fname, i, part[i]));
+        (klass.meta.def.methods && klass.meta.def.methods["set"+fname]) || js.push(Joose._.Attribute.helper.getSetterCode(fname, i, part[i]));
         var init = part[i].init;
         jsc.keys.push(i);
         jsc.values.push(init);
@@ -201,8 +201,8 @@ var Joose = {
         }
         part[i].isPersistent = Joose._.Attribute.helper.isPersistent; // HAS to applied everytime ????
         var fname = Joose._.firstUp(i);
-        klass.prototype["get"+fname] = this.closureHasGet(i);
-        klass.prototype["set"+fname] = this.closureHasSet(i);
+        (klass.meta.def.methods && klass.meta.def.methods["get"+fname]) || (klass.prototype["get"+fname] = this.closureHasGet(i));
+        (klass.meta.def.methods && klass.meta.def.methods["set"+fname]) || (klass.prototype["set"+fname] = this.closureHasSet(i));
         var init = part[i].init;
         jsc.keys.push(i);
         jsc.values.push(init);
@@ -387,6 +387,20 @@ var Joose = {
       },
       
       helper: {
+        addInits: function(key, klass, def) {
+          var inits = klass.meta.inits;
+          if (def[key]) {
+            for (var i = def[key].length - 1; i >= 0; --i) {
+              var m = def[key][i];
+              if (!m.meta.inits) { continue; }
+              for (var j = 0, l = m.meta.inits.keys.length; j < l; ++j) {
+                inits.keys.push(m.meta.inits.keys[j]);
+                inits.values.push(m.meta.inits.values[j]);
+              }
+            }
+          }
+        },
+
         emptyFunction: function() {}, 
         methodLoop: function(notOverride) {
           /* this need for rhino where funny things are enumerated */
@@ -464,11 +478,52 @@ var Joose = {
             klass.prototype[i] = Joose._.Class.helper[name](part[i], klass.prototype[i]);
           }
         },
+
+        has: function(params) {
+          if (this.toString === {}.toString) {
+            this._oid = this.oid || Joose._.nameId++;
+            this.toString = function() {
+              return this.meta._name.absolute + "<" + (this._oid) + ">";
+            };
+          }
+//console.log("INIT:", klass.meta.getName(), klass.meta.inits.keys)
+          for (var i = 0, l = this.meta.inits.keys.length; i < l; ++i) {
+            var key = this.meta.inits.keys[i];
+            var value = this.meta.inits.values[i];
+
+            if (typeof value === "function") {
+              this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance
+            } else {
+              this[key] = value;
+            }
+          }
+
+          if (typeof params === "object") {
+            for (var attr in this.meta.getAttributes()) {
+              try {
+                if (typeof params[attr] !== "undefined") {
+                  var fname = "set" + Joose._.firstUp(attr);
+                  if (this[fname]) {
+//console.log("INIT:FUNC:",this.toString(), fname, params[attr], this[fname]);
+                    this[fname].apply(this, [params[attr]]);
+                  } else if (!this[attr]) {
+//console.log("INIT:ATTR:",this.meta.getName(), attr, params[attr]);
+                    this[attr] = params[attr];
+                  }
+                }
+              } catch (e) {
+                // FIXME: There are Rhino which throws exceptions on access java classes
+              }
+            }
+          }
+        },
+
         instantiate: function() { 
           var f = function () {};
           f.prototype = this['class'].prototype;
           var obj = new f();
-          obj.initialize.apply(obj, arguments);
+          Joose._.Class.helper.has.apply(obj, arguments);
+          obj.initialize && obj.initialize.apply(obj, arguments);
           return obj;
         }
       },
@@ -479,6 +534,9 @@ var Joose = {
         Joose._.Class.helper.methods(klass.prototype, def[key], notOverride);
       },
       has: function(key, klass, def) {
+        Joose._.Class.helper.addInits("isa", klass, def)
+        Joose._.Class.helper.addInits("does", klass, def)
+         
         var part = def[key];
         if (!part) { return; }
         Joose._.buildHas(part, klass.meta.inits, klass);
@@ -641,9 +699,11 @@ var Joose = {
       name = Joose._.anonymousName();
     }
     //var klass_prototype = function() { };
-    var klass = function() { 
+    var klass = function() {
+      Joose._.Class.helper.has.apply(this, arguments);
       this.initialize && this.initialize.apply(this, arguments);
     };
+
     Joose.Module(name, function(current) {
 		 klass.meta = current.meta;
 		 klass.meta.inits = { values: [], keys: [] };
@@ -656,49 +716,8 @@ var Joose = {
 			var key = Joose._.classParser[i];
 			Joose._.Class[key](key, klass, def);
 		 }
-		 var inits = function(params) {
-       if (this.toString === {}.toString) {
-         this._oid = this.oid || Joose._.nameId++;
-         this.toString = function() { 
-          return this.meta._name.absolute + '<' + (this._oid) +'>'; 
-         }
-       }
-//console.log("INIT:", klass.meta.getName(), klass.meta.inits.keys)
-       for(var i = 0, l = klass.meta.inits.keys.length; i < l; ++i) {
-         var key = klass.meta.inits.keys[i];
-         var value = klass.meta.inits.values[i];
-         if (typeof(value) == 'function') {
-           this[key] = value.apply(this); // to set the context of the called function from joose to the actual instance 
-         } else {
-           this[key] = value;
-         }
-       }
-       if (typeof(params) == 'object') {
-         for (var attr in klass.meta.getAttributes()) {
-           try {
-             if (typeof(params[attr]) != 'undefined') {
-               var fname = 'set'+Joose._.firstUp(attr);
-               if (this[fname]) {
-//console.log("INIT:FUNC:",this.toString(), fname, params[attr], this[fname]);
-                 this[fname].apply(this, [params[attr]]);
-               } else if (!this[attr]) {
-//console.log("INIT:ATTR:",this.meta.getName(), attr, params[attr]);
-                 this[attr] = params[attr];
-               }
-             }
-           } catch (e) {
-             // FIXME: There are Rhino which throws exceptions on access java classes
-           }
-         }
-       }
-		 };
-		 
-		 if (klass.prototype.initialize) {
-			klass.prototype.initialize = Joose._.Class.helper.after(inits, klass.prototype.initialize);
-		 } else {
-			klass.prototype.initialize = inits;
-		 }
      klass.meta.instantiate = Joose._.Class.helper.instantiate;
+
   	 klass.prototype.meta = klass.meta;
 		 current.meta.nsparent[klass.meta._name.relative] = klass;
     }, 'Class').meta;
